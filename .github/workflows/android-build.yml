@@ -11,36 +11,90 @@ permissions:
 
 jobs:
   build:
-    name: armeabi-v7a (Android API 19)
+    name: armeabi-v7a (Android API 19) with bundled TLS
     runs-on: ubuntu-22.04
     steps:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Install CMake and Ninja
+      - name: Install host build tools
         run: |
           sudo apt-get update
-          sudo apt-get install -y cmake ninja-build
+          sudo apt-get install -y cmake ninja-build git perl
 
       - name: Install Android NDK
         uses: android-actions/setup-android@v3
 
-      - name: Install NDK r25c
+      - name: Accept Android SDK licenses and install NDK r25c
         run: |
+          yes | sdkmanager --licenses >/dev/null || true
           sdkmanager --install "ndk;25.2.9519653"
           echo "ANDROID_NDK_HOME=$ANDROID_HOME/ndk/25.2.9519653" >> "$GITHUB_ENV"
+          echo "ANDROID_TOOLCHAIN=$ANDROID_HOME/ndk/25.2.9519653/build/cmake/android.toolchain.cmake" >> "$GITHUB_ENV"
 
-      - name: Configure
+      - name: Build mbedTLS for Android API 19
         run: |
-          cmake -S . -B build -G Ninja \
-            -DCMAKE_TOOLCHAIN_FILE="$ANDROID_NDK_HOME/build/cmake/android.toolchain.cmake" \
+          git clone --depth 1 --branch mbedtls-3.6.4 https://github.com/Mbed-TLS/mbedtls.git deps/mbedtls
+          cmake -S deps/mbedtls -B build-mbedtls -G Ninja \
+            -DCMAKE_TOOLCHAIN_FILE="$ANDROID_TOOLCHAIN" \
             -DANDROID_ABI=armeabi-v7a \
             -DANDROID_PLATFORM=android-19 \
             -DANDROID_STL=c++_static \
+            -DCMAKE_BUILD_TYPE=Release \
+            -DCMAKE_INSTALL_PREFIX="$GITHUB_WORKSPACE/deps/install" \
+            -DENABLE_PROGRAMS=OFF \
+            -DENABLE_TESTING=OFF \
+            -DUSE_SHARED_MBEDTLS_LIBRARY=OFF \
+            -DUSE_STATIC_MBEDTLS_LIBRARY=ON
+          cmake --build build-mbedtls --parallel 2
+          cmake --install build-mbedtls
+
+      - name: Build libcurl with mbedTLS for Android API 19
+        run: |
+          git clone --depth 1 --branch curl-8_12_1 https://github.com/curl/curl.git deps/curl
+          cmake -S deps/curl -B build-curl -G Ninja \
+            -DCMAKE_TOOLCHAIN_FILE="$ANDROID_TOOLCHAIN" \
+            -DANDROID_ABI=armeabi-v7a \
+            -DANDROID_PLATFORM=android-19 \
+            -DANDROID_STL=c++_static \
+            -DCMAKE_BUILD_TYPE=Release \
+            -DCMAKE_INSTALL_PREFIX="$GITHUB_WORKSPACE/deps/install" \
+            -DCMAKE_PREFIX_PATH="$GITHUB_WORKSPACE/deps/install" \
+            -DCURL_USE_MBEDTLS=ON \
+            -DCURL_USE_OPENSSL=OFF \
+            -DCURL_USE_LIBPSL=OFF \
+            -DCURL_USE_LIBSSH2=OFF \
+            -DCURL_USE_ZLIB=OFF \
+            -DBUILD_SHARED_LIBS=OFF \
+            -DBUILD_CURL_EXE=OFF \
+            -DBUILD_TESTING=OFF \
+            -DCURL_DISABLE_LDAP=ON \
+            -DCURL_DISABLE_LDAPS=ON \
+            -DCURL_DISABLE_FTP=ON \
+            -DCURL_DISABLE_FILE=ON \
+            -DCURL_DISABLE_TELNET=ON \
+            -DCURL_DISABLE_DICT=ON \
+            -DCURL_DISABLE_GOPHER=ON
+          cmake --build build-curl --parallel 2
+          cmake --install build-curl
+
+      - name: Configure ytdlp.cpp
+        run: |
+          cmake -S . -B build -G Ninja \
+            -DCMAKE_TOOLCHAIN_FILE="$ANDROID_TOOLCHAIN" \
+            -DANDROID_ABI=armeabi-v7a \
+            -DANDROID_PLATFORM=android-19 \
+            -DANDROID_STL=c++_static \
+            -DCMAKE_PREFIX_PATH="$GITHUB_WORKSPACE/deps/install" \
             -DCMAKE_BUILD_TYPE=Release
 
-      - name: Build
-        run: cmake --build build --verbose
+      - name: Build native library
+        run: cmake --build build --verbose --parallel 2
+
+      - name: Inspect native library
+        run: |
+          file build/libytdlp.so
+          "$ANDROID_NDK_HOME/toolchains/llvm/prebuilt/linux-x86_64/bin/llvm-readelf" -h build/libytdlp.so
 
       - name: Upload native library
         uses: actions/upload-artifact@v4
