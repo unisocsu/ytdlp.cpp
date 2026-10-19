@@ -15,20 +15,13 @@ The source snapshot is imported from https://github.com/yt-dlp/yt-dlp. Its upstr
 
 - C API for version/build information.
 - HTTP(S) download layer using libcurl, with TLS verification enabled.
-- First small utility ports from base/yt_dlp/utils/_utils.py:
-  - determine_ext
-  - url_basename
-  - int_or_none
-  - str_or_none for optional strings
-  - urlencode_postdata for string key/value fields
-- Host-side unit tests for the initial utility ports.
+- Native utility ports: determine_ext, url_basename, int_or_none, str_or_none, urlencode_postdata, parse_duration, url_join, and update_url_query.
+- Host-side unit tests for utility behavior.
 - Android API 19 / armeabi-v7a build workflow.
 
 These are only the first building blocks. This project is **not yet a complete yt-dlp replacement** and does not yet include native site extractors, format selection, or media merging.
 
 ## Build and test
-
-Host utility tests:
 
 ```sh
 cmake -S . -B build-host -DYTDLP_BUILD_TESTS=ON -DYTDLP_BUILD_SHARED=OFF
@@ -40,7 +33,7 @@ The GitHub Actions workflows also build for Android API 19 and run host utility 
 
 ## Next porting steps
 
-1. Expand utility parity, including duration parsing, URL joining, and query updates.
+1. Stabilize utility behavior and edge cases.
 2. Implement native request/response/cookie abstractions over the HTTP layer.
 3. Port the common extractor framework.
 4. Port one site extractor end-to-end and add regression tests.
