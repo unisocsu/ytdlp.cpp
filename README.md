@@ -1,42 +1,56 @@
 # ytdlp.cpp
 
-A native C++ porting project inspired by yt-dlp, starting with Android 4.4 KitKat (API 19) compatibility.
+A native C++ project aiming to port yt-dlp functionality to older Android devices, starting with Android 4.4 (API 19).
 
-**Status: bootstrap stage.** This repository is not yet a downloader and does not yet implement modern TLS or yt-dlp extractors. The first goal is to establish a reproducible Android NDK build, then add a maintained TLS/HTTP stack and test it on API 19.
+> **Current status:** the project now has a native HTTP(S) download layer built around libcurl and mbedTLS. This is an early foundation, not yet a complete yt-dlp replacement: site extractors, format selection, manifests, and media post-processing still need to be ported.
 
-## Goals
+## Current features
 
-- Native C++ implementation; do not launch Python or the original yt-dlp executable.
-- Android API 19 compatibility, initially targeting `armeabi-v7a`.
-- Keep networking behind a stable internal interface.
-- Verify TLS certificates; never disable certificate verification as a compatibility workaround.
-- Add site extractors incrementally and test behavior against the upstream project.
-- Build using GitHub Actions, without requiring Android Studio on the developer's computer.
+- C API suitable for use from Java/JNI or other native callers.
+- HTTP and HTTPS download to a file.
+- Redirect following, limited to HTTP/HTTPS protocols.
+- TLS certificate-chain and hostname verification enabled by default.
+- Optional caller-supplied PEM CA bundle path.
+- Android API 19 / `armeabi-v7a` CI build using the Android NDK.
+- TLS is built into the native dependency stack; this does not require replacing Android's system TLS implementation or rooting the device.
+
+## HTTP download API
+
+Include `ytdlp/ytdlp.h` and `ytdlp/http.h`, then call:
+
+```c
+#include "ytdlp/http.h"
+
+long status = 0;
+int result = ytdlp_http_download(
+    "https://example.com/file.bin",
+    "/data/local/tmp/file.bin",
+    "/path/to/cacert.pem", /* pass NULL to use libcurl's configured defaults */
+    120,
+    &status
+);
+
+if (result != 0) {
+    /* Copy or log ytdlp_http_last_error() before another call on this thread. */
+}
+```
+
+The destination's parent directory must already exist and be writable. A failed transfer removes the partial output file. The CA bundle should be packaged by the application or supplied by the caller; do not disable TLS verification to work around certificate errors.
 
 ## Build
 
-The GitHub Actions workflow builds the native shared library for Android API 19 and uploads it as an Actions artifact.
+The GitHub Actions workflow builds mbedTLS and libcurl from pinned release tags for Android API 19, then links them into `libytdlp.so`. Run it from the Actions tab or push to `main`.
 
-For local builds, use Android NDK r25c or another NDK verified to support API 19, with CMake and Ninja:
+The resulting artifact is named `ytdlp-cpp-android-api19-armeabi-v7a`.
 
-```sh
-cmake -S . -B build -G Ninja \
-  -DCMAKE_TOOLCHAIN_FILE="$ANDROID_NDK_HOME/build/cmake/android.toolchain.cmake" \
-  -DANDROID_ABI=armeabi-v7a \
-  -DANDROID_PLATFORM=android-19
-cmake --build build
-```
+## Roadmap
 
-## Planned milestones
+1. **Native transport:** HTTP(S), redirects, timeouts, verified TLS. *(in progress; CI validation required)*
+2. Common URL, header, cookie, and response utilities.
+3. Extractor framework and JSON/HTML helpers.
+4. Port site extractors incrementally, with regression tests against yt-dlp.
+5. Format selection, HLS/DASH handling, and media merging where feasible.
 
-1. **Build foundation** — API 19 compile and CI artifact.
-2. **TLS and HTTP** — integrate a maintained TLS library and HTTP client, validate certificates, redirects, streaming downloads, timeouts, and error reporting on KitKat.
-3. **Core utilities** — URL handling, JSON, formats, and downloader primitives.
-4. **Extractor framework** — port extractors incrementally, starting with tests and a small number of sites.
-5. **Compatibility tests** — compare metadata and download behavior with upstream yt-dlp.
+## Important scope note
 
-A one-to-one port is a large project: Python behavior, extractor logic, and site-specific JavaScript dependencies all need deliberate equivalents in C++. Passing the Android build does not by itself mean a site is supported.
-
-## Licensing
-
-Before distributing a combined binary, review the licenses of yt-dlp and every dependency selected for the C++ implementation.
+A true one-to-one port of yt-dlp is a large project. This repository does not yet support arbitrary video sites. The immediate goal is to establish a reliable native transport layer, then add extraction features in testable increments.
