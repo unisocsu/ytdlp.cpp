@@ -25,6 +25,7 @@ The upstream yt-dlp source tree is kept in base/. The exact upstream commit is r
 | yt_dlp/utils/_utils.py: parse_duration | src/utils.cpp: parse_duration | Clock, common unit strings, and day/time ISO-8601 subset |
 | urllib.parse.urljoin usage | src/utils.cpp: url_join | Common absolute/relative URL joining; not a full RFC implementation |
 | URL query mutation helpers | src/utils.cpp: update_url_query | Replaces supplied keys, preserves other fields and fragment |
+| yt_dlp/networking/ request/response concepts | include/ytdlp/network.hpp, src/network.cpp | Initial request execution, response headers/body, and scoped cookie store; advanced proxy/retry/impersonation support not ported |
 
 ## Validation
 
@@ -34,8 +35,8 @@ The upstream yt-dlp source tree is kept in base/. The exact upstream commit is r
 
 ## Next milestones
 
-1. Stabilize the new duration/URL helper implementations and expand edge-case tests.
-2. Define native URL, request, response, cookie, and error types on top of the HTTP layer.
-3. Port the common extractor framework.
-4. Port one site extractor end-to-end and add regression tests.
+1. Expand networking parity: proxy configuration, retry policy, redirect handling details, and cookie expiry/domain edge cases.
+2. Port the common extractor framework (URL matching, suitability, result dictionaries as typed C++ structures).
+3. Port one site extractor end-to-end and add regression tests.
+4. Add format selection and media metadata parsing.
 5. Grow extractor coverage incrementally, tracking unsupported behavior explicitly.
