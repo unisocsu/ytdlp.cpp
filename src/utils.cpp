@@ -2,7 +2,9 @@
 
 #include <algorithm>
 #include <cctype>
+#include <cmath>
 #include <limits>
+#include <regex>
 #include <set>
 #include <stdexcept>
 
@@ -21,8 +23,7 @@ const std::set<std::string>& known_extensions() {
 
 bool is_ascii_alnum(const std::string& value) {
     return !value.empty() && std::all_of(value.begin(), value.end(), [](unsigned char c) {
-        return (c >= 'A' && c <= 'Z') ||
-               (c >= 'a' && c <= 'z') ||
+        return (c >= 'A' && c <= 'Z') || (c >= 'a' && c <= 'z') ||
                (c >= '0' && c <= '9');
     });
 }
@@ -45,28 +46,22 @@ std::string url_path(const std::string& url) {
 std::int64_t floor_div(std::int64_t numerator, std::int64_t denominator) {
     std::int64_t quotient = numerator / denominator;
     const std::int64_t remainder = numerator % denominator;
-    if (remainder != 0 && ((remainder < 0) != (denominator < 0))) {
-        --quotient;
-    }
+    if (remainder != 0 && ((remainder < 0) != (denominator < 0))) --quotient;
     return quotient;
 }
 
 bool is_unreserved(unsigned char c) {
-    return (c >= 'A' && c <= 'Z') ||
-           (c >= 'a' && c <= 'z') ||
-           (c >= '0' && c <= '9') ||
-           c == '-' || c == '_' || c == '.' || c == '~';
+    return (c >= 'A' && c <= 'Z') || (c >= 'a' && c <= 'z') ||
+           (c >= '0' && c <= '9') || c == '-' || c == '_' || c == '.' || c == '~';
 }
 
 std::string form_encode(const std::string& value) {
     static const char hex[] = "0123456789ABCDEF";
     std::string encoded;
     for (unsigned char c : value) {
-        if (is_unreserved(c)) {
-            encoded.push_back(static_cast<char>(c));
-        } else if (c == ' ') {
-            encoded.push_back('+');
-        } else {
+        if (is_unreserved(c)) encoded.push_back(static_cast<char>(c));
+        else if (c == ' ') encoded.push_back('+');
+        else {
             encoded.push_back('%');
             encoded.push_back(hex[(c >> 4) & 0x0F]);
             encoded.push_back(hex[c & 0x0F]);
@@ -75,40 +70,71 @@ std::string form_encode(const std::string& value) {
     return encoded;
 }
 
+int hex_value(char c) {
+    if (c >= '0' && c <= '9') return c - '0';
+    if (c >= 'a' && c <= 'f') return c - 'a' + 10;
+    if (c >= 'A' && c <= 'F') return c - 'A' + 10;
+    return -1;
+}
+
+std::string form_decode(const std::string& value) {
+    std::string decoded;
+    for (std::size_t i = 0; i < value.size(); ++i) {
+        if (value[i] == '+' ) decoded.push_back(' ');
+        else if (value[i] == '%' && i + 2 < value.size() &&
+                 hex_value(value[i + 1]) >= 0 && hex_value(value[i + 2]) >= 0) {
+            decoded.push_back(static_cast<char>((hex_value(value[i + 1]) << 4) | hex_value(value[i + 2])));
+            i += 2;
+        } else decoded.push_back(value[i]);
+    }
+    return decoded;
+}
+
+std::string remove_dot_segments(const std::string& path) {
+    const bool leading = !path.empty() && path.front() == '/';
+    const bool trailing = !path.empty() && path.back() == '/';
+    std::vector<std::string> parts;
+    std::size_t start = 0;
+    while (start <= path.size()) {
+        const auto end = path.find('/', start);
+        const std::string part = path.substr(start, end == std::string::npos ? end : end - start);
+        if (part == "..") {
+            if (!parts.empty()) parts.pop_back();
+        } else if (!part.empty() && part != ".") parts.push_back(part);
+        if (end == std::string::npos) break;
+        start = end + 1;
+    }
+    std::string result = leading ? "/" : "";
+    for (std::size_t i = 0; i < parts.size(); ++i) {
+        if (i) result += "/";
+        result += parts[i];
+    }
+    if (trailing && !result.empty() && result.back() != '/') result += "/";
+    if (result.empty() && leading) result = "/";
+    return result;
+}
+
 }  // namespace
 
 std::string determine_ext(const std::optional<std::string>& url,
                           const std::string& default_ext) {
-    if (!url || url->find('.') == std::string::npos) {
+    if (!url) return default_ext;
+    const std::size_t end = url->find_first_of("?#");
+    const std::string path = url->substr(0, end);
+    const std::size_t slash = path.rfind('/');
+    const std::size_t dot = path.rfind('.');
+    if (dot == std::string::npos || (slash != std::string::npos && dot < slash + 1))
         return default_ext;
-    }
-
-    const std::size_t query = url->find('?');
-    const std::string before_query = url->substr(0, query);
-    const std::size_t dot = before_query.rfind('.');
-    if (dot == std::string::npos) {
-        return default_ext;
-    }
-
-    std::string guess = before_query.substr(dot + 1);
-    if (is_ascii_alnum(guess)) {
-        return guess;
-    }
-
-    while (!guess.empty() && guess.back() == '/') {
-        guess.pop_back();
-    }
-    return known_extensions().count(guess) ? guess : default_ext;
+    std::string ext = path.substr(dot + 1);
+    std::transform(ext.begin(), ext.end(), ext.begin(),
+                   [](unsigned char c) { return static_cast<char>(std::tolower(c)); });
+    return is_ascii_alnum(ext) ? ext : default_ext;
 }
 
 std::string url_basename(const std::string& url) {
     std::string path = url_path(url);
-    while (!path.empty() && path.back() == '/') {
-        path.pop_back();
-    }
-    while (!path.empty() && path.front() == '/') {
-        path.erase(path.begin());
-    }
+    while (!path.empty() && path.back() == '/') path.pop_back();
+    while (!path.empty() && path.front() == '/') path.erase(path.begin());
     const std::size_t slash = path.rfind('/');
     return slash == std::string::npos ? path : path.substr(slash + 1);
 }
@@ -118,38 +144,33 @@ std::optional<std::int64_t> int_or_none(
     std::int64_t scale,
     std::int64_t invscale,
     std::optional<int> base) {
-    if (!value || scale == 0) {
-        return std::nullopt;
-    }
-
+    if (!value || scale == 0) return std::nullopt;
     try {
         std::size_t consumed = 0;
         const int parse_base = base.value_or(10);
-        if (parse_base != 0 && (parse_base < 2 || parse_base > 36)) {
-            return std::nullopt;
-        }
+        if (parse_base != 0 && (parse_base < 2 || parse_base > 36)) return std::nullopt;
         const long long parsed = std::stoll(*value, &consumed, parse_base);
         while (consumed < value->size() &&
-               std::isspace(static_cast<unsigned char>((*value)[consumed]))) {
-            ++consumed;
+               std::isspace(static_cast<unsigned char>((*value)[consumed]))) ++consumed;
+        if (consumed != value->size()) return std::nullopt;
+        const auto p = static_cast<std::int64_t>(parsed);
+        if (invscale != 0) {
+            if (invscale > 0 && (p > std::numeric_limits<std::int64_t>::max() / invscale ||
+                                 p < std::numeric_limits<std::int64_t>::min() / invscale))
+                return std::nullopt;
+            if (invscale < 0 && (p == std::numeric_limits<std::int64_t>::min() ||
+                                 -p > std::numeric_limits<std::int64_t>::max() / -invscale))
+                return std::nullopt;
         }
-        if (consumed != value->size()) {
-            return std::nullopt;
-        }
-
-        if (invscale != 0 &&
-            (parsed > std::numeric_limits<std::int64_t>::max() / invscale ||
-             parsed < std::numeric_limits<std::int64_t>::min() / invscale)) {
-            return std::nullopt;
-        }
-        return floor_div(static_cast<std::int64_t>(parsed) * invscale, scale);
+        const std::int64_t product = p * invscale;
+        if (scale == -1 && product == std::numeric_limits<std::int64_t>::min()) return std::nullopt;
+        return floor_div(product, scale);
     } catch (const std::exception&) {
         return std::nullopt;
     }
 }
 
-std::optional<std::string> str_or_none(
-    const std::optional<std::string>& value) {
+std::optional<std::string> str_or_none(const std::optional<std::string>& value) {
     return value;
 }
 
@@ -158,15 +179,130 @@ std::string urlencode_postdata(
     std::string result;
     bool first = true;
     for (const auto& field : fields) {
-        if (!first) {
-            result.push_back('&');
-        }
+        if (!first) result.push_back('&');
         first = false;
         result += form_encode(field.first);
         result.push_back('=');
         result += form_encode(field.second);
     }
     return result;
+}
+
+std::optional<double> parse_duration(const std::optional<std::string>& value) {
+    if (!value) return std::nullopt;
+    const std::string s = std::regex_replace(*value, std::regex("^\\s+|\\s+$"), "");
+    if (s.empty()) return std::nullopt;
+    std::smatch m;
+    const std::regex clock(R"(^(?:(\d+):)?(?:(\d+):)?(\d+)(?:[.:](\d+))?Z?$)");
+    if (std::regex_match(s, m, clock)) {
+        try {
+            double total = 0;
+            if (m[1].matched && m[2].matched) {
+                total += std::stold(m[1].str()) * 86400.0;
+                total += std::stold(m[2].str()) * 3600.0;
+                total += std::stold(m[3].str()) * 60.0;
+            } else if (m[1].matched) {
+                total += std::stold(m[1].str()) * 3600.0;
+                total += std::stold(m[2].str()) * 60.0;
+                total += std::stold(m[3].str());
+            } else if (m[2].matched) {
+                total += std::stold(m[2].str()) * 60.0;
+                total += std::stold(m[3].str());
+            } else total += std::stold(m[3].str());
+            if (m[4].matched) total += std::stod("0." + m[4].str());
+            if (std::isfinite(total)) return total;
+        } catch (...) { return std::nullopt; }
+        return std::nullopt;
+    }
+
+    // Parse common unit strings such as "1h 2m 3.5s" and ISO-8601 PnDTnHnMnS.
+    const std::regex units(
+        R"(^P?(?:(\d+(?:\.\d+)?)\s*(?:d|days?)\s*)?(?:T\s*)?(?:(\d+(?:\.\d+)?)\s*(?:h|hours?)\s*)?(?:(\d+(?:\.\d+)?)\s*(?:m|min|mins|minutes?)\s*)?(?:(\d+(?:\.\d+)?)\s*(?:s|sec|secs|seconds?)\s*)?Z?$)",
+        std::regex::icase);
+    if (std::regex_match(s, m, units) &&
+        (m[1].matched || m[2].matched || m[3].matched || m[4].matched)) {
+        try {
+            double total = 0;
+            if (m[1].matched) total += std::stod(m[1].str()) * 86400.0;
+            if (m[2].matched) total += std::stod(m[2].str()) * 3600.0;
+            if (m[3].matched) total += std::stod(m[3].str()) * 60.0;
+            if (m[4].matched) total += std::stod(m[4].str());
+            return std::isfinite(total) ? std::optional<double>(total) : std::nullopt;
+        } catch (...) { return std::nullopt; }
+    }
+
+    const std::regex decimal_unit(R"(^([0-9]+(?:\.[0-9]+)?)\s*(hours?|mins?\.?|minutes?)Z?$)",
+                                  std::regex::icase);
+    if (std::regex_match(s, m, decimal_unit)) {
+        try {
+            const double n = std::stod(m[1].str());
+            const std::string unit = m[2].str();
+            return n * (std::tolower(unit[0]) == 'h' ? 3600.0 : 60.0);
+        } catch (...) { return std::nullopt; }
+    }
+    return std::nullopt;
+}
+
+std::optional<std::string> url_join(
+    const std::optional<std::string>& base,
+    const std::optional<std::string>& relative) {
+    if (!relative) return std::nullopt;
+    if (!base || relative->empty()) return relative;
+    const std::string& b = *base;
+    const std::string& r = *relative;
+    if (r.find("://") != std::string::npos || r.rfind("//", 0) == 0) {
+        if (r.rfind("//", 0) == 0) {
+            const auto colon = b.find(':');
+            return (colon == std::string::npos ? std::string("https:") : b.substr(0, colon + 1)) + r;
+        }
+        return r;
+    }
+    const auto scheme = b.find("://");
+    if (scheme == std::string::npos) {
+        if (r.front() == '/') return r;
+        const auto slash = b.rfind('/');
+        return slash == std::string::npos ? r : b.substr(0, slash + 1) + r;
+    }
+    const auto authority_end = b.find('/', scheme + 3);
+    const std::string origin = authority_end == std::string::npos ? b : b.substr(0, authority_end);
+    if (r.front() == '/') return origin + remove_dot_segments(r);
+    const auto suffix = b.find_first_of("?#");
+    const std::string clean_base = b.substr(0, suffix);
+    const auto last_slash = clean_base.rfind('/');
+    const std::string directory = last_slash == std::string::npos || last_slash < scheme + 3
+        ? origin + "/" : clean_base.substr(0, last_slash + 1);
+    return directory + remove_dot_segments(r);
+}
+
+std::string update_url_query(
+    const std::string& url,
+    const std::vector<std::pair<std::string, std::string>>& updates) {
+    const auto hash = url.find('#');
+    const std::string fragment = hash == std::string::npos ? "" : url.substr(hash);
+    const std::string no_fragment = url.substr(0, hash);
+    const auto q = no_fragment.find('?');
+    const std::string path = q == std::string::npos ? no_fragment : no_fragment.substr(0, q);
+    std::vector<std::pair<std::string, std::string>> fields;
+    if (q != std::string::npos && q + 1 < no_fragment.size()) {
+        const std::string query = no_fragment.substr(q + 1);
+        std::size_t start = 0;
+        while (start <= query.size()) {
+            const auto amp = query.find('&', start);
+            const std::string item = query.substr(start, amp == std::string::npos ? amp : amp - start);
+            const auto eq = item.find('=');
+            if (!item.empty()) fields.emplace_back(form_decode(item.substr(0, eq)),
+                eq == std::string::npos ? "" : form_decode(item.substr(eq + 1)));
+            if (amp == std::string::npos) break;
+            start = amp + 1;
+        }
+    }
+    for (const auto& update : updates) {
+        fields.erase(std::remove_if(fields.begin(), fields.end(), [&](const auto& field) {
+            return field.first == update.first;
+        }), fields.end());
+        fields.push_back(update);
+    }
+    return path + (fields.empty() ? "" : "?" + urlencode_postdata(fields)) + fragment;
 }
 
 }  // namespace utils
