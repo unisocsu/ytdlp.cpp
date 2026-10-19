@@ -219,27 +219,35 @@ std::optional<double> parse_duration(const std::optional<std::string>& value) {
     }
 
     // Common unit strings and ISO-8601 day/time subset, e.g. "1h 2m 3.5s" or "P1DT2H".
-    const std::regex units(
-        R"(^P?(?:(\d+(?:\.\d+)?)\s*(?:d|days?)\s*)?(?:T\s*)?(?:(\d+(?:\.\d+)?)\s*(?:h|hours?)\s*)?(?:(\d+(?:\.\d+)?)\s*(?:m|min|mins|minutes?)\s*)?(?:(\d+(?:\.\d+)?)\s*(?:s|sec|secs|seconds?)\s*)?Z?$)",
-        std::regex::icase);
-    if (std::regex_match(s, m, units) &&
-        (m[1].matched || m[2].matched || m[3].matched || m[4].matched)) {
+    std::string unit_text = s;
+    if (!unit_text.empty() && (unit_text.front() == 'P' || unit_text.front() == 'p'))
+        unit_text.erase(unit_text.begin());
+    unit_text = std::regex_replace(unit_text, std::regex("[Tt]"), " ");
+    const std::regex token(R"(([0-9]+(?:\.[0-9]+)?)\s*(days?|d|hours?|h|minutes?|mins?|min|m|seconds?|secs?|sec|s))",
+                          std::regex::icase);
+    std::sregex_iterator it(unit_text.begin(), unit_text.end(), token);
+    const std::sregex_iterator finish;
+    if (it != finish) {
+        double total = 0.0;
+        std::size_t consumed = 0;
         try {
-            double total = 0.0;
-            if (m[1].matched) total += std::stod(m[1].str()) * 86400.0;
-            if (m[2].matched) total += std::stod(m[2].str()) * 3600.0;
-            if (m[3].matched) total += std::stod(m[3].str()) * 60.0;
-            if (m[4].matched) total += std::stod(m[4].str());
+            for (; it != finish; ++it) {
+                const auto& match = *it;
+                const std::string gap = unit_text.substr(consumed, static_cast<std::size_t>(match.position()) - consumed);
+                if (!std::all_of(gap.begin(), gap.end(), [](unsigned char ch) { return std::isspace(ch); }))
+                    return std::nullopt;
+                const double amount = std::stod(match[1].str());
+                const char unit = static_cast<char>(std::tolower(match[2].str()[0]));
+                if (unit == 'd') total += amount * 86400.0;
+                else if (unit == 'h') total += amount * 3600.0;
+                else if (unit == 'm') total += amount * 60.0;
+                else if (unit == 's') total += amount;
+                consumed = static_cast<std::size_t>(match.position() + match.length());
+            }
+            const std::string tail = unit_text.substr(consumed);
+            if (!std::all_of(tail.begin(), tail.end(), [](unsigned char ch) { return std::isspace(ch); }))
+                return std::nullopt;
             return std::isfinite(total) ? std::optional<double>(total) : std::nullopt;
-        } catch (...) { return std::nullopt; }
-    }
-    const std::regex decimal_unit(R"(^([0-9]+(?:\.[0-9]+)?)\s*(hours?|mins?\.?|minutes?)Z?$)",
-                                  std::regex::icase);
-    if (std::regex_match(s, m, decimal_unit)) {
-        try {
-            const double n = std::stod(m[1].str());
-            const std::string unit = m[2].str();
-            return n * (std::tolower(unit[0]) == 'h' ? 3600.0 : 60.0);
         } catch (...) { return std::nullopt; }
     }
     return std::nullopt;
