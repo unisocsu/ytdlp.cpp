@@ -47,6 +47,11 @@ if(YTDLP_BUILD_TESTS)
     target_include_directories(ytdlp_utils_test PRIVATE include)
     target_compile_options(ytdlp_utils_test PRIVATE -Wall -Wextra -Wpedantic)
     add_test(NAME native_utils_test COMMAND ytdlp_utils_test)
+    add_executable(ytdlp_network_test tests/network_test.cpp src/network.cpp)
+    target_include_directories(ytdlp_network_test PRIVATE include)
+    target_link_libraries(ytdlp_network_test PRIVATE CURL::libcurl)
+    target_compile_options(ytdlp_network_test PRIVATE -Wall -Wextra -Wpedantic)
+    add_test(NAME native_network_test COMMAND ytdlp_network_test)
 endif()
 
 install(TARGETS ytdlp_core
