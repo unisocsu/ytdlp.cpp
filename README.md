@@ -15,7 +15,9 @@ The source snapshot is imported from https://github.com/yt-dlp/yt-dlp. Its upstr
 
 - C API for version/build information.
 - HTTP(S) download layer using libcurl, with TLS verification enabled.
+- Native request/response structures and a host/path/secure-aware in-memory cookie store.
 - Native utility ports: determine_ext, url_basename, int_or_none, str_or_none, urlencode_postdata, parse_duration, url_join, and update_url_query.
+- Unit tests for URL helpers, duration parsing, cookies, and response headers.
 - Host-side unit tests for utility behavior.
 - Android API 19 / armeabi-v7a build workflow.
 
