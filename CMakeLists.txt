@@ -2,6 +2,7 @@ cmake_minimum_required(VERSION 3.18)
 project(ytdlp_cpp VERSION 0.1.0 LANGUAGES C CXX)
 
 option(YTDLP_BUILD_SHARED "Build ytdlp.cpp as a shared library" ON)
+option(YTDLP_BUILD_TESTS "Build native utility tests" ON)
 
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
@@ -12,6 +13,7 @@ find_package(CURL REQUIRED)
 set(YTDLP_SOURCES
     src/ytdlp.cpp
     src/http.cpp
+    src/utils.cpp
 )
 
 if(YTDLP_BUILD_SHARED)
@@ -35,6 +37,17 @@ set_target_properties(ytdlp_core PROPERTIES
     VERSION ${PROJECT_VERSION}
     SOVERSION 0
 )
+
+if(YTDLP_BUILD_TESTS)
+    enable_testing()
+    add_executable(ytdlp_utils_test
+        tests/native_utils_test.cpp
+        src/utils.cpp
+    )
+    target_include_directories(ytdlp_utils_test PRIVATE include)
+    target_compile_options(ytdlp_utils_test PRIVATE -Wall -Wextra -Wpedantic)
+    add_test(NAME native_utils_test COMMAND ytdlp_utils_test)
+endif()
 
 install(TARGETS ytdlp_core
     LIBRARY DESTINATION lib
