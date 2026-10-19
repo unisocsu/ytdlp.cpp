@@ -68,6 +68,10 @@ jobs:
             -DCMAKE_BUILD_TYPE=Release \
             -DCMAKE_INSTALL_PREFIX="$GITHUB_WORKSPACE/deps/install" \
             -DCMAKE_PREFIX_PATH="$GITHUB_WORKSPACE/deps/install" \
+            -DMBEDTLS_INCLUDE_DIR="$GITHUB_WORKSPACE/deps/install/include" \
+            -DMBEDTLS_LIBRARY="$GITHUB_WORKSPACE/deps/install/lib/libmbedtls.a" \
+            -DMBEDX509_LIBRARY="$GITHUB_WORKSPACE/deps/install/lib/libmbedx509.a" \
+            -DMBEDCRYPTO_LIBRARY="$GITHUB_WORKSPACE/deps/install/lib/libmbedcrypto.a" \
             -DCURL_USE_MBEDTLS=ON \
             -DCURL_USE_OPENSSL=OFF \
             -DCURL_USE_LIBPSL=OFF \
