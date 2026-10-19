@@ -32,7 +32,7 @@ jobs:
           sudo apt-get install -y cmake ninja-build libcurl4-openssl-dev
       - name: Configure
         run: cmake -S . -B build-host -G Ninja -DYTDLP_BUILD_TESTS=ON -DYTDLP_BUILD_SHARED=OFF
-      - name: Build utility tests
-        run: cmake --build build-host --target ytdlp_utils_test --parallel 2
+      - name: Build native library and tests
+        run: cmake --build build-host --parallel 2
       - name: Run utility tests
         run: ctest --test-dir build-host --output-on-failure
