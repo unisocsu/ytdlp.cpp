@@ -193,36 +193,39 @@ std::optional<double> parse_duration(const std::optional<std::string>& value) {
     const std::string s = std::regex_replace(*value, std::regex("^\\s+|\\s+$"), "");
     if (s.empty()) return std::nullopt;
     std::smatch m;
-    const std::regex clock(R"(^(?:(\d+):)?(?:(\d+):)?(\d+)(?:[.:](\d+))?Z?$)");
+
+    // Clock forms: SS, MM:SS, HH:MM:SS, DD:HH:MM:SS; fraction is seconds.
+    const std::regex clock(R"(^([0-9]+(?::[0-9]+){0,3})(?:\.([0-9]+))?Z?$)", std::regex::icase);
     if (std::regex_match(s, m, clock)) {
         try {
-            double total = 0;
-            if (m[1].matched && m[2].matched) {
-                total += std::stold(m[1].str()) * 86400.0;
-                total += std::stold(m[2].str()) * 3600.0;
-                total += std::stold(m[3].str()) * 60.0;
-            } else if (m[1].matched) {
-                total += std::stold(m[1].str()) * 3600.0;
-                total += std::stold(m[2].str()) * 60.0;
-                total += std::stold(m[3].str());
-            } else if (m[2].matched) {
-                total += std::stold(m[2].str()) * 60.0;
-                total += std::stold(m[3].str());
-            } else total += std::stold(m[3].str());
-            if (m[4].matched) total += std::stod("0." + m[4].str());
-            if (std::isfinite(total)) return total;
+            std::vector<double> fields;
+            const std::string clock_part = m[1].str();
+            std::size_t begin = 0;
+            while (begin <= clock_part.size()) {
+                const auto colon = clock_part.find(':', begin);
+                fields.push_back(std::stod(clock_part.substr(begin,
+                    colon == std::string::npos ? colon : colon - begin)));
+                if (colon == std::string::npos) break;
+                begin = colon + 1;
+            }
+            double total = 0.0;
+            if (fields.size() == 1) total = fields[0];
+            else if (fields.size() == 2) total = fields[0] * 60.0 + fields[1];
+            else if (fields.size() == 3) total = fields[0] * 3600.0 + fields[1] * 60.0 + fields[2];
+            else total = fields[0] * 86400.0 + fields[1] * 3600.0 + fields[2] * 60.0 + fields[3];
+            if (m[2].matched) total += std::stod("0." + m[2].str());
+            return std::isfinite(total) ? std::optional<double>(total) : std::nullopt;
         } catch (...) { return std::nullopt; }
-        return std::nullopt;
     }
 
-    // Parse common unit strings such as "1h 2m 3.5s" and ISO-8601 PnDTnHnMnS.
+    // Common unit strings and ISO-8601 day/time subset, e.g. "1h 2m 3.5s" or "P1DT2H".
     const std::regex units(
-        R"(^P?(?:(\d+(?:\.\d+)?)\s*(?:d|days?)\s*)?(?:T\s*)?(?:(\d+(?:\.\d+)?)\s*(?:h|hours?)\s*)?(?:(\d+(?:\.\d+)?)\s*(?:m|min|mins|minutes?)\s*)?(?:(\d+(?:\.\d+)?)\s*(?:s|sec|secs|seconds?)\s*)?Z?$)",
+        R"(^P?(?:(\\d+(?:\\.\\d+)?)\\s*(?:d|days?)\\s*)?(?:T\\s*)?(?:(\\d+(?:\\.\\d+)?)\\s*(?:h|hours?)\\s*)?(?:(\\d+(?:\\.\\d+)?)\\s*(?:m|min|mins|minutes?)\\s*)?(?:(\\d+(?:\\.\\d+)?)\\s*(?:s|sec|secs|seconds?)\\s*)?Z?$)",
         std::regex::icase);
     if (std::regex_match(s, m, units) &&
         (m[1].matched || m[2].matched || m[3].matched || m[4].matched)) {
         try {
-            double total = 0;
+            double total = 0.0;
             if (m[1].matched) total += std::stod(m[1].str()) * 86400.0;
             if (m[2].matched) total += std::stod(m[2].str()) * 3600.0;
             if (m[3].matched) total += std::stod(m[3].str()) * 60.0;
@@ -230,8 +233,7 @@ std::optional<double> parse_duration(const std::optional<std::string>& value) {
             return std::isfinite(total) ? std::optional<double>(total) : std::nullopt;
         } catch (...) { return std::nullopt; }
     }
-
-    const std::regex decimal_unit(R"(^([0-9]+(?:\.[0-9]+)?)\s*(hours?|mins?\.?|minutes?)Z?$)",
+    const std::regex decimal_unit(R"(^([0-9]+(?:\\.[0-9]+)?)\\s*(hours?|mins?\\.?|minutes?)Z?$)",
                                   std::regex::icase);
     if (std::regex_match(s, m, decimal_unit)) {
         try {
