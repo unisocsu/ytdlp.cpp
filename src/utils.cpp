@@ -222,34 +222,47 @@ std::optional<double> parse_duration(const std::optional<std::string>& value) {
     std::string unit_text = s;
     if (!unit_text.empty() && (unit_text.front() == 'P' || unit_text.front() == 'p'))
         unit_text.erase(unit_text.begin());
-    unit_text = std::regex_replace(unit_text, std::regex("[Tt]"), " ");
-    const std::regex token(R"(([0-9]+(?:\.[0-9]+)?)\s*(days?|d|hours?|h|minutes?|mins?|min|m|seconds?|secs?|sec|s))",
-                          std::regex::icase);
-    std::sregex_iterator it(unit_text.begin(), unit_text.end(), token);
-    const std::sregex_iterator finish;
-    if (it != finish) {
-        double total = 0.0;
-        std::size_t consumed = 0;
-        try {
-            for (; it != finish; ++it) {
-                const auto& match = *it;
-                const std::string gap = unit_text.substr(consumed, static_cast<std::size_t>(match.position()) - consumed);
-                if (!std::all_of(gap.begin(), gap.end(), [](unsigned char ch) { return std::isspace(ch); }))
-                    return std::nullopt;
-                const double amount = std::stod(match[1].str());
-                const char unit = static_cast<char>(std::tolower(match[2].str()[0]));
-                if (unit == 'd') total += amount * 86400.0;
-                else if (unit == 'h') total += amount * 3600.0;
-                else if (unit == 'm') total += amount * 60.0;
-                else if (unit == 's') total += amount;
-                consumed = static_cast<std::size_t>(match.position() + match.length());
-            }
-            const std::string tail = unit_text.substr(consumed);
-            if (!std::all_of(tail.begin(), tail.end(), [](unsigned char ch) { return std::isspace(ch); }))
+    double total = 0.0;
+    bool found_unit = false;
+    std::size_t pos = 0;
+    try {
+        while (pos < unit_text.size()) {
+            while (pos < unit_text.size() &&
+                   (std::isspace(static_cast<unsigned char>(unit_text[pos])) ||
+                    unit_text[pos] == ',' || unit_text[pos] == 'T' || unit_text[pos] == 't')) ++pos;
+            if (pos == unit_text.size()) break;
+            const char* begin = unit_text.c_str() + pos;
+            char* number_end = nullptr;
+            const double amount = std::strtod(begin, &number_end);
+            if (number_end == begin || !std::isfinite(amount)) return std::nullopt;
+            pos = static_cast<std::size_t>(number_end - unit_text.c_str());
+            while (pos < unit_text.size() && std::isspace(static_cast<unsigned char>(unit_text[pos]))) ++pos;
+            const std::size_t unit_start = pos;
+            while (pos < unit_text.size() &&
+                   std::isalpha(static_cast<unsigned char>(unit_text[pos]))) ++pos;
+            std::string unit = unit_text.substr(unit_start, pos - unit_start);
+            std::transform(unit.begin(), unit.end(), unit.begin(),
+                [](unsigned char ch) { return static_cast<char>(std::tolower(ch)); });
+            if (!unit.empty() && unit.back() == 'z') unit.pop_back();
+            if (unit == "d" || unit == "day" || unit == "days") total += amount * 86400.0;
+            else if (unit == "h" || unit == "hr" || unit == "hrs" ||
+                     unit == "hour" || unit == "hours") total += amount * 3600.0;
+            else if (unit == "m" || unit == "min" || unit == "mins" ||
+                     unit == "minute" || unit == "minutes") total += amount * 60.0;
+            else if (unit == "s" || unit == "sec" || unit == "secs" ||
+                     unit == "second" || unit == "seconds") total += amount;
+            else return std::nullopt;
+            found_unit = true;
+            if (pos < unit_text.size() && !std::isspace(static_cast<unsigned char>(unit_text[pos])) &&
+                unit_text[pos] != ',' && unit_text[pos] != 'T' && unit_text[pos] != 't')
                 return std::nullopt;
-            return std::isfinite(total) ? std::optional<double>(total) : std::nullopt;
-        } catch (...) { return std::nullopt; }
+        }
+        if (found_unit && std::isfinite(total)) return total;
+    } catch (...) {
+        return std::nullopt;
     }
+    return std::nullopt;
+}
     return std::nullopt;
 }
 
