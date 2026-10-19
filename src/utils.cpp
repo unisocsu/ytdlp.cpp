@@ -190,7 +190,7 @@ std::string urlencode_postdata(
 
 std::optional<double> parse_duration(const std::optional<std::string>& value) {
     if (!value) return std::nullopt;
-    const std::string s = std::regex_replace(*value, std::regex("^\\s+|\\s+$"), "");
+    const std::string s = std::regex_replace(*value, std::regex("^\s+|\s+$"), "");
     if (s.empty()) return std::nullopt;
     std::smatch m;
 
@@ -220,7 +220,7 @@ std::optional<double> parse_duration(const std::optional<std::string>& value) {
 
     // Common unit strings and ISO-8601 day/time subset, e.g. "1h 2m 3.5s" or "P1DT2H".
     const std::regex units(
-        R"(^P?(?:(\\d+(?:\\.\\d+)?)\\s*(?:d|days?)\\s*)?(?:T\\s*)?(?:(\\d+(?:\\.\\d+)?)\\s*(?:h|hours?)\\s*)?(?:(\\d+(?:\\.\\d+)?)\\s*(?:m|min|mins|minutes?)\\s*)?(?:(\\d+(?:\\.\\d+)?)\\s*(?:s|sec|secs|seconds?)\\s*)?Z?$)",
+        R"(^P?(?:(\d+(?:\.\d+)?)\s*(?:d|days?)\s*)?(?:T\s*)?(?:(\d+(?:\.\d+)?)\s*(?:h|hours?)\s*)?(?:(\d+(?:\.\d+)?)\s*(?:m|min|mins|minutes?)\s*)?(?:(\d+(?:\.\d+)?)\s*(?:s|sec|secs|seconds?)\s*)?Z?$)",
         std::regex::icase);
     if (std::regex_match(s, m, units) &&
         (m[1].matched || m[2].matched || m[3].matched || m[4].matched)) {
@@ -233,7 +233,7 @@ std::optional<double> parse_duration(const std::optional<std::string>& value) {
             return std::isfinite(total) ? std::optional<double>(total) : std::nullopt;
         } catch (...) { return std::nullopt; }
     }
-    const std::regex decimal_unit(R"(^([0-9]+(?:\\.[0-9]+)?)\\s*(hours?|mins?\\.?|minutes?)Z?$)",
+    const std::regex decimal_unit(R"(^([0-9]+(?:\.[0-9]+)?)\s*(hours?|mins?\.?|minutes?)Z?$)",
                                   std::regex::icase);
     if (std::regex_match(s, m, decimal_unit)) {
         try {
