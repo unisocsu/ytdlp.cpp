@@ -42,7 +42,7 @@ jobs:
 
       - name: Build mbedTLS for Android API 19
         run: |
-          git clone --depth 1 --branch mbedtls-3.6.4 https://github.com/Mbed-TLS/mbedtls.git deps/mbedtls
+          git clone --depth 1 --recurse-submodules --shallow-submodules --branch mbedtls-3.6.4 https://github.com/Mbed-TLS/mbedtls.git deps/mbedtls
           cmake -S deps/mbedtls -B build-mbedtls -G Ninja \
             -DCMAKE_TOOLCHAIN_FILE="$ANDROID_TOOLCHAIN" \
             -DANDROID_ABI=armeabi-v7a \
