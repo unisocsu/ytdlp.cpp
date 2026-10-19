@@ -43,18 +43,18 @@ jobs:
           path = Path("base/yt_dlp/extractor/shahid.py")
           source = path.read_text(encoding="utf-8")
           source, api_count = re.subn(
-              r"(?m)^(\\s*_AWS_API_KEY\\s*=).*$",
-              r"\\1 'REDACTED_UPSTREAM_CREDENTIAL'",
+              r"(?m)^(\s*_AWS_API_KEY\s*=).*$",
+              r"\1 'REDACTED_UPSTREAM_CREDENTIAL'",
               source,
           )
           source, access_count = re.subn(
-              r"(?m)^(\\s*['\"]access_key['\"]\\s*:\\s*).*$",
-              r"\\1'REDACTED_UPSTREAM_CREDENTIAL',",
+              r"(?m)^(\s*['\"]access_key['\"]\s*:\s*).*$",
+              r"\1'REDACTED_UPSTREAM_CREDENTIAL',",
               source,
           )
           source, secret_count = re.subn(
-              r"(?m)^(\\s*['\"]secret_key['\"]\\s*:\\s*).*$",
-              r"\\1'REDACTED_UPSTREAM_CREDENTIAL',",
+              r"(?m)^(\s*['\"]secret_key['\"]\s*:\s*).*$",
+              r"\1'REDACTED_UPSTREAM_CREDENTIAL',",
               source,
           )
           print(f"Credential fields matched: API={api_count}, access={access_count}, secret={secret_count}")
@@ -62,12 +62,12 @@ jobs:
               raise SystemExit("Expected credential fields were not found; stop rather than import unreviewed values.")
           path.write_text(source, encoding="utf-8")
           Path("base/IMPORT_REDACTIONS.md").write_text(
-              "# Import redactions\\n\\n"
+              "# Import redactions\n\n"
               "GitHub push protection flagged three credential-like values in "
               "yt_dlp/extractor/shahid.py. Their values were replaced with "
               "REDACTED_UPSTREAM_CREDENTIAL so they are not copied into this repository. "
               "The upstream Shahid extractor in this reference snapshot is intentionally "
-              "not usable as-is; native C++ porting must use legitimate, non-secret configuration.\\n",
+              "not usable as-is; native C++ porting must use legitimate, non-secret configuration.\n",
               encoding="utf-8",
           )
           PY
