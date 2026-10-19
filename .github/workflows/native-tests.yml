@@ -1,0 +1,38 @@
+name: Native utility tests
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "src/**"
+      - "include/**"
+      - "tests/**"
+      - "CMakeLists.txt"
+      - ".github/workflows/native-tests.yml"
+  pull_request:
+    paths:
+      - "src/**"
+      - "include/**"
+      - "tests/**"
+      - "CMakeLists.txt"
+      - ".github/workflows/native-tests.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  host-tests:
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install build dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y cmake ninja-build libcurl4-openssl-dev
+      - name: Configure
+        run: cmake -S . -B build-host -G Ninja -DYTDLP_BUILD_TESTS=ON -DYTDLP_BUILD_SHARED=OFF
+      - name: Build utility tests
+        run: cmake --build build-host --target ytdlp_utils_test --parallel 2
+      - name: Run utility tests
+        run: ctest --test-dir build-host --output-on-failure
