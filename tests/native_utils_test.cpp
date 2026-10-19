@@ -1,13 +1,10 @@
 #include "ytdlp/utils.hpp"
 
 #include <cassert>
+#include <cmath>
 #include <iostream>
 
-using ytdlp::utils::determine_ext;
-using ytdlp::utils::int_or_none;
-using ytdlp::utils::str_or_none;
-using ytdlp::utils::url_basename;
-using ytdlp::utils::urlencode_postdata;
+using namespace ytdlp::utils;
 
 int main() {
     assert(determine_ext(std::string("https://example.com/video.mp4?token=x")) == "mp4");
@@ -23,6 +20,20 @@ int main() {
     assert(!str_or_none(std::nullopt).has_value());
     assert(urlencode_postdata({{"name", "a b"}, {"next", "/x?y=1"}}) ==
            "name=a+b&next=%2Fx%3Fy%3D1");
+
+    assert(std::abs(*parse_duration(std::string("01:02:03")) - 3723.0) < 0.001);
+    assert(std::abs(*parse_duration(std::string("1:02")) - 62.0) < 0.001);
+    assert(std::abs(*parse_duration(std::string("1h 2m 3.5s")) - 3723.5) < 0.001);
+    assert(std::abs(*parse_duration(std::string("P1DT2H")) - 93600.0) < 0.001);
+    assert(!parse_duration(std::string("not a duration")));
+    assert(!parse_duration(std::nullopt));
+
+    assert(url_join(std::string("https://example.com/a/b"), std::string("../video?id=1")) ==
+           std::optional<std::string>("https://example.com/video?id=1"));
+    assert(url_join(std::string("https://example.com/a/b"), std::string("/watch")) ==
+           std::optional<std::string>("https://example.com/watch"));
+    assert(update_url_query("https://example.com/watch?a=1&b=old#top", {{"b", "new value"}, {"c", "3"}}) ==
+           "https://example.com/watch?a=1&b=new+value&c=3#top");
     std::cout << "native utility tests passed\n";
     return 0;
 }
