@@ -264,8 +264,6 @@ std::optional<double> parse_duration(const std::optional<std::string>& value) {
     }
     return std::nullopt;
 }
-    return std::nullopt;
-}
 
 std::optional<std::string> url_join(
     const std::optional<std::string>& base,
