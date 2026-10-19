@@ -76,7 +76,7 @@ EOF
             echo "- Repository: https://github.com/yt-dlp/yt-dlp"
             echo "- Imported commit: $(cat UPSTREAM_REVISION.txt)"
             echo "- Imported at (UTC): $(date -u +%Y-%m-%dT%H:%M:%SZ)"
-            echo "- Source snapshot directory: base/
+            echo "- Source snapshot directory: base/"
             echo
             echo "The original source tree and its license notices are retained under base/."
           } > UPSTREAM.md
