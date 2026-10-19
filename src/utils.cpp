@@ -273,7 +273,11 @@ std::optional<std::string> url_join(
     const auto last_slash = clean_base.rfind('/');
     const std::string directory = last_slash == std::string::npos || last_slash < scheme + 3
         ? origin + "/" : clean_base.substr(0, last_slash + 1);
-    return directory + remove_dot_segments(r);
+    const auto relative_suffix = r.find_first_of("?#");
+    const std::string relative_path = r.substr(0, relative_suffix);
+    const std::string tail = relative_suffix == std::string::npos ? "" : r.substr(relative_suffix);
+    const std::string combined_path = directory.substr(origin.size()) + relative_path;
+    return origin + remove_dot_segments(combined_path) + tail;
 }
 
 std::string update_url_query(
