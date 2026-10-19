@@ -38,36 +38,31 @@ jobs:
         run: |
           python3 - <<'PY'
           from pathlib import Path
-          import re
 
           path = Path("base/yt_dlp/extractor/shahid.py")
-          source = path.read_text(encoding="utf-8")
-          source, api_count = re.subn(
-              r"(?m)^(\s*_AWS_API_KEY\s*=).*$",
-              r"\1 'REDACTED_UPSTREAM_CREDENTIAL'",
-              source,
-          )
-          source, access_count = re.subn(
-              r"(?m)^(\s*['\"]access_key['\"]\s*:\s*).*$",
-              r"\1'REDACTED_UPSTREAM_CREDENTIAL',",
-              source,
-          )
-          source, secret_count = re.subn(
-              r"(?m)^(\s*['\"]secret_key['\"]\s*:\s*).*$",
-              r"\1'REDACTED_UPSTREAM_CREDENTIAL',",
-              source,
-          )
+          lines = path.read_text(encoding="utf-8").splitlines()
+          api_count = access_count = secret_count = 0
+          for index, line in enumerate(lines):
+              if "_AWS_API_KEY" in line and "=" in line:
+                  lines[index] = "    _AWS_API_KEY = 'REDACTED_UPSTREAM_CREDENTIAL'"
+                  api_count += 1
+              elif "access_key" in line and ":" in line:
+                  lines[index] = "                'access_key': 'REDACTED_UPSTREAM_CREDENTIAL',"
+                  access_count += 1
+              elif "secret_key" in line and ":" in line:
+                  lines[index] = "                'secret_key': 'REDACTED_UPSTREAM_CREDENTIAL',"
+                  secret_count += 1
           print(f"Credential fields matched: API={api_count}, access={access_count}, secret={secret_count}")
           if not (api_count and access_count and secret_count):
               raise SystemExit("Expected credential fields were not found; stop rather than import unreviewed values.")
-          path.write_text(source, encoding="utf-8")
+          path.write_text("\\n".join(lines) + "\\n", encoding="utf-8")
           Path("base/IMPORT_REDACTIONS.md").write_text(
-              "# Import redactions\n\n"
+              "# Import redactions\\n\\n"
               "GitHub push protection flagged three credential-like values in "
               "yt_dlp/extractor/shahid.py. Their values were replaced with "
               "REDACTED_UPSTREAM_CREDENTIAL so they are not copied into this repository. "
               "The upstream Shahid extractor in this reference snapshot is intentionally "
-              "not usable as-is; native C++ porting must use legitimate, non-secret configuration.\n",
+              "not usable as-is; native C++ porting must use legitimate, non-secret configuration.\\n",
               encoding="utf-8",
           )
           PY
