@@ -43,18 +43,18 @@ jobs:
           path = Path("base/yt_dlp/extractor/shahid.py")
           source = path.read_text(encoding="utf-8")
           source, api_count = re.subn(
-              r"(_AWS_API_KEY\\s*=\\s*)['\"][^'\"]+['\"]",
-              r"\\1'REDACTED_UPSTREAM_CREDENTIAL'",
+              r"(_AWS_API_KEY\s*=\s*)['\"][^'\"]+['\"]",
+              r"\1'REDACTED_UPSTREAM_CREDENTIAL'",
               source,
           )
           source, access_count = re.subn(
-              r"(['\"]access_key['\"]\\s*:\\s*)['\"][^'\"]+['\"]",
-              r"\\1'REDACTED_UPSTREAM_CREDENTIAL'",
+              r"(['\"]access_key['\"]\s*:\s*)['\"][^'\"]+['\"]",
+              r"\1'REDACTED_UPSTREAM_CREDENTIAL'",
               source,
           )
           source, secret_count = re.subn(
-              r"(['\"]secret_key['\"]\\s*:\\s*)['\"][^'\"]+['\"]",
-              r"\\1'REDACTED_UPSTREAM_CREDENTIAL'",
+              r"(['\"]secret_key['\"]\s*:\s*)['\"][^'\"]+['\"]",
+              r"\1'REDACTED_UPSTREAM_CREDENTIAL'",
               source,
           )
           if not (api_count and access_count and secret_count):
@@ -63,14 +63,14 @@ jobs:
               )
           path.write_text(source, encoding="utf-8")
           Path("base/IMPORT_REDACTIONS.md").write_text(
-              "# Import redactions\\n\\n"
+              "# Import redactions\n\n"
               "The upstream reference snapshot had three credential-like values in "
               "yt_dlp/extractor/shahid.py that GitHub push protection blocked. "
               "Their values were replaced with REDACTED_UPSTREAM_CREDENTIAL so "
               "they are not copied into this repository. This means the upstream "
               "Shahid extractor in this reference snapshot is intentionally not "
               "usable as-is; native C++ porting must use a legitimate, non-secret "
-              "configuration rather than restore these values.\\n",
+              "configuration rather than restore these values.\n",
               encoding="utf-8",
           )
           print(f"Redacted fields: API={api_count}, access={access_count}, secret={secret_count}")
