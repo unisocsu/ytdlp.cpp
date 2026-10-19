@@ -28,8 +28,10 @@ jobs:
           distribution: temurin
           java-version: "17"
 
-      - name: Install Android NDK
+      - name: Set up Android command-line tools
         uses: android-actions/setup-android@v3
+        with:
+          packages: platform-tools
 
       - name: Accept Android SDK licenses and install NDK r25c
         run: |
@@ -93,15 +95,12 @@ jobs:
             -DANDROID_STL=c++_static \
             -DCMAKE_PREFIX_PATH="$GITHUB_WORKSPACE/deps/install" \
             -DCMAKE_BUILD_TYPE=Release
-
       - name: Build native library
         run: cmake --build build --verbose --parallel 2
-
       - name: Inspect native library
         run: |
           file build/libytdlp.so
           "$ANDROID_NDK_HOME/toolchains/llvm/prebuilt/linux-x86_64/bin/llvm-readelf" -h build/libytdlp.so
-
       - name: Upload native library
         uses: actions/upload-artifact@v4
         with:
