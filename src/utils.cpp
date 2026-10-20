@@ -223,6 +223,8 @@ std::optional<double> parse_duration(const std::optional<std::string>& value) {
     std::string unit_text = s;
     if (!unit_text.empty() && (unit_text.front() == 'P' || unit_text.front() == 'p'))
         unit_text.erase(unit_text.begin());
+    std::replace(unit_text.begin(), unit_text.end(), 'T', ' ');
+    std::replace(unit_text.begin(), unit_text.end(), 't', ' ');
     double total = 0.0;
     bool found_unit = false;
     std::size_t pos = 0;
