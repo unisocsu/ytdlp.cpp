@@ -15,7 +15,7 @@ The source snapshot is imported from https://github.com/yt-dlp/yt-dlp. Its upstr
 
 - C API for version/build information.
 - HTTP(S) download layer using libcurl, with TLS verification enabled, redirects restricted to HTTP(S), timeout support, and cleanup of partial files on failure.
-- Initial end-to-end `DownloadEngine`: selects a supported extractor, chooses its first format, and downloads it to an explicit output path; currently supports direct media-file URLs only.
+- Initial end-to-end `DownloadEngine`: selects a supported extractor, chooses its first format, and downloads it to an explicit output path. Supports direct media-file URLs and generic HTML pages that expose direct media URLs through Open Graph/Twitter metadata or HTML5 video/source tags.
 - Native request/response structures and a host/path/secure-aware in-memory cookie store.
 - Initial native extractor framework: typed media/format results, ordered extractor registry, and direct media-file URL recognition.
 - HTML metadata parser for page titles, descriptions, canonical links, Open Graph/Twitter video URLs, and HTML video/source tags; JavaScript is not executed.
@@ -25,7 +25,7 @@ The source snapshot is imported from https://github.com/yt-dlp/yt-dlp. Its upstr
 - Host-side unit tests for utility behavior.
 - Android API 19 / armeabi-v7a build workflow.
 
-These are only the first building blocks. The direct-media extractor handles URLs whose paths are media files. The HTML metadata parser is only a parsing primitive; it does not execute JavaScript, parse HLS/DASH manifests, or implement site-specific extraction. This project is **not yet a complete yt-dlp replacement** and does not yet include native site extractors, full format selection, or media merging.
+These are only the first building blocks. The generic HTML extractor fetches webpages and looks for direct media URLs in metadata and HTML5 video/source tags. It does not execute JavaScript, parse HLS/DASH manifests, or implement site-specific extraction, so typical modern YouTube pages and many other sites will still not work. This project is **not yet a complete yt-dlp replacement** and does not yet include native site extractors, full format selection, or media merging.
 
 ## Windows command-line usage
 
@@ -51,8 +51,8 @@ The GitHub Actions workflows also build for Android API 19 and run host utility 
 
 ## Next porting steps
 
-1. Stabilize utility and cookie behavior and edge cases.
-2. Expand the common extractor framework and format-selection metadata.
-3. Port one site extractor end-to-end and add regression tests.
-4. Add HLS/DASH manifest parsing and segmented downloading.
+1. Stabilize generic HTML extraction and URL-resolution edge cases.
+2. Add HLS manifest parsing and segmented downloading.
+3. Port one site-specific extractor end-to-end and add regression tests.
+4. Add DASH parsing and media merging.
 5. Grow extractor coverage incrementally, tracking unsupported behavior explicitly.
