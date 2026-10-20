@@ -27,7 +27,7 @@ The upstream yt-dlp source tree is kept in base/. The exact upstream commit is r
 | URL query mutation helpers | src/utils.cpp: update_url_query | Replaces supplied keys, preserves other fields and fragment |
 | yt_dlp/networking/ request/response concepts | include/ytdlp/network.hpp, src/network.cpp | Initial request execution, response headers/body, and scoped cookie store; advanced proxy/retry/impersonation support not ported |
 | yt_dlp/extractor/common.py: InfoExtractor selection/result basics | include/ytdlp/extractor.hpp, src/extractor.cpp | Native typed MediaInfo/Format, ordered registry, and direct-file URL extractor; no site extractors or manifest parsing yet |
-| Common HTML/Open Graph metadata | include/ytdlp/html.hpp, src/html.cpp | Parses title, description, canonical URL and common embedded media URL tags; no JavaScript execution |
+| Common HTML/Open Graph metadata | include/ytdlp/html.hpp, src/html.cpp | Parses title, description, canonical URL and common embedded media URL tags; no JavaScript execution |\n| URL-to-file download pipeline | include/ytdlp/downloader.hpp, src/downloader.cpp | Native DownloadEngine routes URLs through the extractor registry and invokes the TLS-verified HTTP layer; currently direct media URLs only, no format sorting/progress/cancellation |
 
 ## Build targets\n\n- Android API 19 / armeabi-v7a: `.github/workflows/android-build.yml`\n- Windows x64 / MSVC with Schannel: `.github/workflows/windows-build.yml`\n- Host regression tests: `.github/workflows/native-tests.yml`\n\n## Validation\n
 - Host CI compiles and runs tests for the native utility ports.
