@@ -12,7 +12,7 @@ int main() {
     assert(result.error == "Output path must not be empty");
 
     options.output_path = "unused-test-output.mp4";
-    result = engine.download("https://example.com/watch?id=123", options);
+    result = engine.download("file:///tmp/watch?id=123", options);
     assert(!result.success);
     assert(result.error == "No native extractor supports this URL");
 
