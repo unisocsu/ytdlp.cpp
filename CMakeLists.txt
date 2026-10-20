@@ -32,6 +32,10 @@ target_include_directories(ytdlp_core
 )
 
 target_link_libraries(ytdlp_core PRIVATE CURL::libcurl ${YTDLP_TLS_LIBRARIES})
+if(WIN32)
+    # Static libcurl with Schannel uses these Windows system libraries.
+    target_link_libraries(ytdlp_core PRIVATE ws2_32 crypt32 wldap32 normaliz bcrypt advapi32)
+endif()
 target_compile_definitions(ytdlp_core PRIVATE YTDLP_CPP_BUILDING=1)
 target_compile_options(ytdlp_core PRIVATE -Wall -Wextra -Wpedantic)
 
@@ -62,6 +66,7 @@ if(YTDLP_BUILD_TESTS)
 endif()
 
 install(TARGETS ytdlp_core
+    RUNTIME DESTINATION bin
     LIBRARY DESTINATION lib
     ARCHIVE DESTINATION lib
 )
