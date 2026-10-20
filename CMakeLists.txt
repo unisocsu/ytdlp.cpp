@@ -3,6 +3,7 @@ project(ytdlp_cpp VERSION 0.1.0 LANGUAGES C CXX)
 
 option(YTDLP_BUILD_SHARED "Build ytdlp.cpp as a shared library" ON)
 option(YTDLP_BUILD_TESTS "Build native utility tests" ON)
+set(YTDLP_TLS_LIBRARIES "" CACHE STRING "Additional TLS libraries needed by static libcurl")
 
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
@@ -29,7 +30,7 @@ target_include_directories(ytdlp_core
         $<INSTALL_INTERFACE:include>
 )
 
-target_link_libraries(ytdlp_core PRIVATE CURL::libcurl)
+target_link_libraries(ytdlp_core PRIVATE CURL::libcurl ${YTDLP_TLS_LIBRARIES})
 target_compile_definitions(ytdlp_core PRIVATE YTDLP_CPP_BUILDING=1)
 target_compile_options(ytdlp_core PRIVATE -Wall -Wextra -Wpedantic)
 
