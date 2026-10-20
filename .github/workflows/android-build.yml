@@ -98,6 +98,8 @@ jobs:
             -DANDROID_PLATFORM=android-19 \
             -DANDROID_STL=c++_static \
             -DCMAKE_PREFIX_PATH="$GITHUB_WORKSPACE/deps/install" \
+            -DCURL_INCLUDE_DIR="$GITHUB_WORKSPACE/deps/install/include" \
+            -DCURL_LIBRARY="$GITHUB_WORKSPACE/deps/install/lib/libcurl.a" \
             -DCMAKE_BUILD_TYPE=Release
       - name: Build native library
         run: cmake --build build --verbose --parallel 2
