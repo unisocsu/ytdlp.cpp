@@ -14,7 +14,8 @@ The source snapshot is imported from https://github.com/yt-dlp/yt-dlp. Its upstr
 ## Native code implemented so far
 
 - C API for version/build information.
-- HTTP(S) download layer using libcurl, with TLS verification enabled.
+- HTTP(S) download layer using libcurl, with TLS verification enabled, redirects restricted to HTTP(S), timeout support, and cleanup of partial files on failure.
+- Initial end-to-end `DownloadEngine`: selects a supported extractor, chooses its first format, and downloads it to an explicit output path; currently supports direct media-file URLs only.
 - Native request/response structures and a host/path/secure-aware in-memory cookie store.
 - Initial native extractor framework: typed media/format results, ordered extractor registry, and direct media-file URL recognition.
 - HTML metadata parser for page titles, descriptions, canonical links, Open Graph/Twitter video URLs, and HTML video/source tags; JavaScript is not executed.
