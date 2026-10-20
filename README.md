@@ -19,13 +19,25 @@ The source snapshot is imported from https://github.com/yt-dlp/yt-dlp. Its upstr
 - Native request/response structures and a host/path/secure-aware in-memory cookie store.
 - Initial native extractor framework: typed media/format results, ordered extractor registry, and direct media-file URL recognition.
 - HTML metadata parser for page titles, descriptions, canonical links, Open Graph/Twitter video URLs, and HTML video/source tags; JavaScript is not executed.
-- Windows x64 build workflow using MSVC and Windows Schannel TLS, producing a DLL, import library, and public headers.
+- Windows x64 build workflow using MSVC and Windows Schannel TLS, producing `ytdlp.exe`, a DLL, import library, and public headers.
 - Native utility ports: determine_ext, url_basename, int_or_none, str_or_none, urlencode_postdata, parse_duration, url_join, and update_url_query.
 - Unit tests for URL helpers, duration parsing, cookies, and response headers.
 - Host-side unit tests for utility behavior.
 - Android API 19 / armeabi-v7a build workflow.
 
 These are only the first building blocks. The direct-media extractor handles URLs whose paths are media files. The HTML metadata parser is only a parsing primitive; it does not execute JavaScript, parse HLS/DASH manifests, or implement site-specific extraction. This project is **not yet a complete yt-dlp replacement** and does not yet include native site extractors, full format selection, or media merging.
+
+## Windows command-line usage
+
+Download the `ytdlp-cpp-windows-x64` artifact from the successful [Windows x64 build](https://github.com/unisocsu/ytdlp.cpp/actions/workflows/windows-build.yml), extract the ZIP, and run PowerShell from the extracted folder. The executable and `ytdlp.dll` are both in `bin/`.
+
+```powershell
+.\\bin\\ytdlp.exe --version
+.\\bin\\ytdlp.exe "https://example.com/video.mp4" -o "video.mp4"
+.\\bin\\ytdlp.exe "https://example.com/video.mp4" -o "video.mp4" --timeout 300
+```
+
+Replace the example URL with a **direct media-file URL** that points to a downloadable file. A YouTube watch page or other webpage URL will not work yet. The command does not bypass access controls or provide site-specific extraction at this stage.
 
 ## Build and test
 
