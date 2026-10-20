@@ -17,7 +17,7 @@ The source snapshot is imported from https://github.com/yt-dlp/yt-dlp. Its upstr
 - HTTP(S) download layer using libcurl, with TLS verification enabled, redirects restricted to HTTP(S), timeout support, and cleanup of partial files on failure.
 - Initial end-to-end `DownloadEngine`: selects a supported extractor, chooses its first format, and downloads it to an explicit output path. Supports direct media-file URLs and generic HTML pages that expose direct media URLs through Open Graph/Twitter metadata or HTML5 video/source tags.
 - Native request/response structures and a host/path/secure-aware in-memory cookie store.
-- Initial native extractor framework: typed media/format results, ordered extractor registry, and direct media-file URL recognition.
+- Initial native extractor framework: typed media/format results, ordered extractor registry, direct media-file recognition, and a first YouTube watch-page/Innertube extractor.
 - HTML metadata parser for page titles, descriptions, canonical links, Open Graph/Twitter video URLs, and HTML video/source tags; JavaScript is not executed.
 - Windows x64 build workflow using MSVC and Windows Schannel TLS, producing `ytdlp.exe`, a DLL, import library, and public headers.
 - Native utility ports: determine_ext, url_basename, int_or_none, str_or_none, urlencode_postdata, parse_duration, url_join, and update_url_query.
@@ -25,7 +25,7 @@ The source snapshot is imported from https://github.com/yt-dlp/yt-dlp. Its upstr
 - Host-side unit tests for utility behavior.
 - Android API 19 / armeabi-v7a build workflow.
 
-These are only the first building blocks. The generic HTML extractor fetches webpages and looks for direct media URLs in metadata and HTML5 video/source tags. It does not execute JavaScript, parse HLS/DASH manifests, or implement site-specific extraction, so typical modern YouTube pages and many other sites will still not work. This project is **not yet a complete yt-dlp replacement** and does not yet include native site extractors, full format selection, or media merging.
+YouTube support is an initial native implementation: it fetches the watch page, reads the Innertube API key, requests player metadata, and accepts direct media URLs when YouTube returns them. It does **not** yet decipher `signatureCipher`/JavaScript challenges or merge separate DASH audio and video tracks, so many YouTube videos will still fail. The generic HTML extractor also does not execute JavaScript or parse HLS/DASH manifests. This project is **not yet a complete yt-dlp replacement**.
 
 ## Windows command-line usage
 
@@ -37,7 +37,7 @@ Download the `ytdlp-cpp-windows-x64` artifact from the successful [Windows x64 b
 .\\bin\\ytdlp.exe "https://example.com/video.mp4" -o "video.mp4" --timeout 300
 ```
 
-Replace the example URL with a **direct media-file URL** that points to a downloadable file. A YouTube watch page or other webpage URL will not work yet. The command does not bypass access controls or provide site-specific extraction at this stage.
+Replace the example URL with a direct media-file URL or a supported webpage URL. YouTube watch, youtu.be, Shorts, embed, and live URL forms are recognized, but successful downloading depends on YouTube returning a direct media URL; ciphered formats and separate DASH tracks are not yet supported. The command does not bypass access controls.
 
 ## Build and test
 
