@@ -26,6 +26,7 @@ The upstream yt-dlp source tree is kept in base/. The exact upstream commit is r
 | urllib.parse.urljoin usage | src/utils.cpp: url_join | Common absolute/relative URL joining; not a full RFC implementation |
 | URL query mutation helpers | src/utils.cpp: update_url_query | Replaces supplied keys, preserves other fields and fragment |
 | yt_dlp/networking/ request/response concepts | include/ytdlp/network.hpp, src/network.cpp | Initial request execution, response headers/body, and scoped cookie store; advanced proxy/retry/impersonation support not ported |
+| yt_dlp/extractor/common.py: InfoExtractor selection/result basics | include/ytdlp/extractor.hpp, src/extractor.cpp | Native typed MediaInfo/Format, ordered registry, and direct-file URL extractor; no site extractors or manifest parsing yet |
 
 ## Validation
 
@@ -36,7 +37,7 @@ The upstream yt-dlp source tree is kept in base/. The exact upstream commit is r
 ## Next milestones
 
 1. Expand networking parity: proxy configuration, retry policy, redirect handling details, and cookie expiry/domain edge cases.
-2. Port the common extractor framework (URL matching, suitability, result dictionaries as typed C++ structures).
-3. Port one site extractor end-to-end and add regression tests.
+2. Expand the native common extractor framework (URL matching, suitability, result dictionaries as typed C++ structures); initial registry and direct-media handling now exist.
+3. Port one site extractor end-to-end and add regression tests; direct-file handling is only a baseline, not a site extractor.
 4. Add format selection and media metadata parsing.
 5. Grow extractor coverage incrementally, tracking unsupported behavior explicitly.
