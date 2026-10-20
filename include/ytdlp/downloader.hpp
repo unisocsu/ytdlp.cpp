@@ -26,7 +26,7 @@ struct DownloadResult {
 /*
  * First end-to-end native download pipeline:
  * URL -> extractor registry -> selected format -> TLS-verified HTTP download.
- * Current extractor coverage is intentionally limited to direct media-file URLs.
+ * Supports direct media URLs and generic HTML pages that expose a direct media URL in metadata or HTML5 video/source tags.
  */
 class DownloadEngine {
 public:
