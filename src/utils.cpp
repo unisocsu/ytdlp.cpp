@@ -191,7 +191,10 @@ std::string urlencode_postdata(
 
 std::optional<double> parse_duration(const std::optional<std::string>& value) {
     if (!value) return std::nullopt;
-    const std::string s = std::regex_replace(*value, std::regex("^\s+|\s+$"), "");
+    const auto first_non_space = value->find_first_not_of(" \t\r\n");
+    if (first_non_space == std::string::npos) return std::nullopt;
+    const auto last_non_space = value->find_last_not_of(" \t\r\n");
+    const std::string s = value->substr(first_non_space, last_non_space - first_non_space + 1);
     if (s.empty()) return std::nullopt;
     std::smatch m;
 
