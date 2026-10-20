@@ -1,6 +1,7 @@
 #ifndef YTDLP_CPP_EXTRACTOR_HPP
 #define YTDLP_CPP_EXTRACTOR_HPP
 
+#include <cstddef>
 #include <cstdint>
 #include <memory>
 #include <optional>
