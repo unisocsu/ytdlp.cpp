@@ -15,6 +15,7 @@ set(YTDLP_SOURCES
     src/ytdlp.cpp
     src/http.cpp
     src/network.cpp
+    src/extractor.cpp
     src/utils.cpp
 )
 
@@ -54,6 +55,10 @@ if(YTDLP_BUILD_TESTS)
     target_link_libraries(ytdlp_network_test PRIVATE CURL::libcurl)
     target_compile_options(ytdlp_network_test PRIVATE -Wall -Wextra -Wpedantic)
     add_test(NAME native_network_test COMMAND ytdlp_network_test)
+    add_executable(ytdlp_extractor_test tests/extractor_test.cpp src/extractor.cpp src/utils.cpp)
+    target_include_directories(ytdlp_extractor_test PRIVATE include)
+    target_compile_options(ytdlp_extractor_test PRIVATE -Wall -Wextra -Wpedantic)
+    add_test(NAME native_extractor_test COMMAND ytdlp_extractor_test)
 endif()
 
 install(TARGETS ytdlp_core
