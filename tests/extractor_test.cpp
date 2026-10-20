@@ -7,6 +7,7 @@
 
 using ytdlp::extractor::DirectMediaExtractor;
 using ytdlp::extractor::ExtractorRegistry;
+using ytdlp::extractor::YouTubeExtractor;
 
 int main() {
     DirectMediaExtractor direct;
@@ -27,10 +28,17 @@ int main() {
     assert(result.info->formats[0].protocol == "https");
     assert(!direct.extract("https://example.com/watch?v=123"));
 
+    YouTubeExtractor youtube;
+    assert(youtube.suitable("https://www.youtube.com/watch?v=dQw4w9WgXcQ"));
+    assert(youtube.suitable("https://youtu.be/dQw4w9WgXcQ"));
+    assert(youtube.suitable("https://www.youtube.com/shorts/dQw4w9WgXcQ"));
+    assert(!youtube.suitable("https://example.com/watch?v=dQw4w9WgXcQ"));
+
     ExtractorRegistry registry;
-    assert(registry.size() == 2);
+    assert(registry.size() == 3);
     assert(registry.find("https://cdn.example/video.mp4") != nullptr);
     assert(registry.find("https://example.com/watch?v=123") != nullptr);
+    assert(registry.find("https://www.youtube.com/watch?v=dQw4w9WgXcQ") != nullptr);
     const auto found = registry.extract("http://cdn.example/video.mp4");
     assert(found && found.info->formats.size() == 1);
     const auto missing = registry.extract("file:///tmp/watch?id=123");
