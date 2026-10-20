@@ -79,10 +79,30 @@ std::string json_unescape(std::string value) {
 }
 
 std::string json_string_field(const std::string& json, const std::string& key) {
-    const std::regex field("\\\"" + key + "\\\"\\s*:\\s*\\\"((?:\\\\\\\\.|[^\\\"\\\\\\\\])*)\\\"");
-    std::smatch match;
-    if (!std::regex_search(json, match, field)) return "";
-    return json_unescape(match[1].str());
+    const std::string marker = "\"" + key + "\"";
+    std::size_t pos = json.find(marker);
+    while (pos != std::string::npos) {
+        pos += marker.size();
+        while (pos < json.size() && std::isspace(static_cast<unsigned char>(json[pos]))) ++pos;
+        if (pos >= json.size() || json[pos++] != ':') {
+            pos = json.find(marker, pos);
+            continue;
+        }
+        while (pos < json.size() && std::isspace(static_cast<unsigned char>(json[pos]))) ++pos;
+        if (pos >= json.size() || json[pos++] != '"') {
+            pos = json.find(marker, pos);
+            continue;
+        }
+        const std::size_t begin = pos;
+        bool escaped = false;
+        for (; pos < json.size(); ++pos) {
+            if (escaped) escaped = false;
+            else if (json[pos] == '\\') escaped = true;
+            else if (json[pos] == '"') return json_unescape(json.substr(begin, pos - begin));
+        }
+        return "";
+    }
+    return "";
 }
 
 std::string youtube_video_id(const std::string& url) {
@@ -142,7 +162,6 @@ std::vector<Format> youtube_direct_formats(const std::string& json) {
         if (std::regex_search(object, bitrate, std::regex(R"("bitrate"\s*:\s*(\d+))")))
             format.tbr = std::stod(bitrate[1].str()) / 1000.0;
         formats.push_back(std::move(format));
-        start = end - 1;
     }
     return formats;
 }
