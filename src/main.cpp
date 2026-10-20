@@ -11,8 +11,8 @@ void print_usage() {
     std::cerr
         << "Usage: ytdlp <URL> -o <output-file> [--timeout seconds] [--ca-bundle path]\n"
         << "       ytdlp --version\n\n"
-        << "Currently supports direct media-file URLs (for example, an MP4 URL).\n"
-        << "Webpage extraction for YouTube and other sites is not implemented yet.\n";
+        << "Supports direct media URLs, generic HTML pages, and initial YouTube extraction.\n"
+        << "YouTube signature deciphering and separate DASH track merging are not implemented.\n";
 }
 
 bool parse_positive_long(const std::string& value, long& output) {
