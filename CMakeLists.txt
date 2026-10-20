@@ -13,6 +13,7 @@ find_package(CURL REQUIRED)
 set(YTDLP_SOURCES
     src/ytdlp.cpp
     src/http.cpp
+    src/network.cpp
     src/utils.cpp
 )
 
