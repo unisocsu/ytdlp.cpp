@@ -23,7 +23,10 @@ int main() {
 
     assert(std::abs(*parse_duration(std::string("01:02:03")) - 3723.0) < 0.001);
     assert(std::abs(*parse_duration(std::string("1:02")) - 62.0) < 0.001);
-    assert(std::abs(*parse_duration(std::string("1h 2m 3.5s")) - 3723.5) < 0.001);
+    const auto compound_duration = parse_duration(std::string("1h 2m 3.5s"));
+    if (!compound_duration) { std::cerr << "parse_duration rejected compound duration\\n"; return 2; }
+    std::cerr << "compound duration parsed as " << *compound_duration << "\\n";
+    assert(std::abs(*compound_duration - 3723.5) < 0.001);
     assert(std::abs(*parse_duration(std::string("P1DT2H")) - 93600.0) < 0.001);
     assert(!parse_duration(std::string("not a duration")));
     assert(!parse_duration(std::nullopt));
