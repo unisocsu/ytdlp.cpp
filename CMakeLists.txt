@@ -47,6 +47,7 @@ else()
 endif()
 
 set_target_properties(ytdlp_core PROPERTIES
+    WINDOWS_EXPORT_ALL_SYMBOLS ON
     OUTPUT_NAME ytdlp
     VERSION ${PROJECT_VERSION}
     SOVERSION 0
