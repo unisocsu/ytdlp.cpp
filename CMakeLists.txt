@@ -3,6 +3,7 @@ project(ytdlp_cpp VERSION 0.1.0 LANGUAGES C CXX)
 
 option(YTDLP_BUILD_SHARED "Build ytdlp.cpp as a shared library" ON)
 option(YTDLP_BUILD_TESTS "Build native utility tests" ON)
+option(YTDLP_BUILD_CLI "Build the ytdlp command-line executable" ON)
 set(YTDLP_TLS_LIBRARIES "" CACHE STRING "Additional TLS libraries needed by static libcurl")
 
 set(CMAKE_CXX_STANDARD 17)
@@ -50,6 +51,17 @@ set_target_properties(ytdlp_core PROPERTIES
     VERSION ${PROJECT_VERSION}
     SOVERSION 0
 )
+
+if(YTDLP_BUILD_CLI)
+    add_executable(ytdlp src/main.cpp)
+    target_link_libraries(ytdlp PRIVATE ytdlp_core)
+    if(MSVC)
+        target_compile_options(ytdlp PRIVATE /W4 /permissive-)
+    else()
+        target_compile_options(ytdlp PRIVATE -Wall -Wextra -Wpedantic)
+    endif()
+    install(TARGETS ytdlp RUNTIME DESTINATION bin)
+endif()
 
 if(YTDLP_BUILD_TESTS)
     enable_testing()
