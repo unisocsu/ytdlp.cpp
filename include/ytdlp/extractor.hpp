@@ -58,6 +58,16 @@ public:
     ExtractResult extract(const std::string& url) const override;
 };
 
+/* Initial YouTube watch-page / Innertube extractor. Only direct URLs are supported;
+ * signature deciphering and DASH audio/video merging are not implemented.
+ */
+class YouTubeExtractor final : public InfoExtractor {
+public:
+    const char* name() const override;
+    bool suitable(const std::string& url) const override;
+    ExtractResult extract(const std::string& url) const override;
+};
+
 /* Generic HTML-page extractor for pages exposing a direct media URL in Open Graph,
  * Twitter metadata, or HTML5 video/source tags. No JavaScript/site signatures.
  */
