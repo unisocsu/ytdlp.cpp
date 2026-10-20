@@ -28,12 +28,12 @@ int main() {
     assert(!direct.extract("https://example.com/watch?v=123"));
 
     ExtractorRegistry registry;
-    assert(registry.size() == 1);
+    assert(registry.size() == 2);
     assert(registry.find("https://cdn.example/video.mp4") != nullptr);
-    assert(registry.find("https://example.com/watch?v=123") == nullptr);
+    assert(registry.find("https://example.com/watch?v=123") != nullptr);
     const auto found = registry.extract("http://cdn.example/video.mp4");
     assert(found && found.info->formats.size() == 1);
-    const auto missing = registry.extract("https://example.com/watch?v=123");
+    const auto missing = registry.extract("file:///tmp/watch?id=123");
     assert(!missing);
     assert(missing.error == "No native extractor supports this URL");
 
