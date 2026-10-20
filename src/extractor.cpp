@@ -97,7 +97,7 @@ std::string youtube_video_id(const std::string& url) {
 }
 
 std::string youtube_api_key(const std::string& html) {
-    static const std::regex key_pattern(R"("INNERTUBE_API_KEY"\s*:\s*"([^"]+)")");
+    static const std::regex key_pattern(R"KEY("INNERTUBE_API_KEY"\s*:\s*"([^"]+)")KEY");
     std::smatch match;
     return std::regex_search(html, match, key_pattern) ? match[1].str() : "";
 }
