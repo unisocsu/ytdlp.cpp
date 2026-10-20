@@ -16,6 +16,7 @@ set(YTDLP_SOURCES
     src/http.cpp
     src/network.cpp
     src/extractor.cpp
+    src/html.cpp
     src/utils.cpp
 )
 
@@ -63,6 +64,10 @@ if(YTDLP_BUILD_TESTS)
     target_include_directories(ytdlp_extractor_test PRIVATE include)
     target_compile_options(ytdlp_extractor_test PRIVATE -Wall -Wextra -Wpedantic)
     add_test(NAME native_extractor_test COMMAND ytdlp_extractor_test)
+    add_executable(ytdlp_html_test tests/html_test.cpp src/html.cpp)
+    target_include_directories(ytdlp_html_test PRIVATE include)
+    target_compile_options(ytdlp_html_test PRIVATE -Wall -Wextra -Wpedantic)
+    add_test(NAME native_html_test COMMAND ytdlp_html_test)
 endif()
 
 install(TARGETS ytdlp_core
