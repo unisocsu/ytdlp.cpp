@@ -42,7 +42,7 @@ jobs:
       - name: Configure ytdlp.cpp
         shell: pwsh
         run: |
-          cmake -S . -B build -A x64 -DCMAKE_BUILD_TYPE=Release -DCMAKE_PREFIX_PATH="$env:GITHUB_WORKSPACE/deps/install" -DCURL_INCLUDE_DIR="$env:GITHUB_WORKSPACE/deps/install/include" -DCURL_LIBRARY="$env:GITHUB_WORKSPACE/deps/install/lib/libcurl.lib" -DYTDLP_BUILD_TESTS=OFF -DYTDLP_BUILD_SHARED=ON
+          cmake -S . -B build -A x64 -DCMAKE_BUILD_TYPE=Release -DCMAKE_PREFIX_PATH="$env:GITHUB_WORKSPACE/deps/install" -DCURL_INCLUDE_DIR="$env:GITHUB_WORKSPACE/deps/install/include" -DCURL_LIBRARY="$env:GITHUB_WORKSPACE/deps/install/lib/libcurl.lib" -DYTDLP_BUILD_TESTS=OFF -DYTDLP_BUILD_SHARED=ON -DYTDLP_BUILD_CLI=ON
 
       - name: Build native DLL
         run: cmake --build build --config Release --parallel 2
@@ -53,7 +53,10 @@ jobs:
           cmake --install build --config Release --prefix dist
           if (!(Test-Path "dist/bin/ytdlp.dll")) { Get-ChildItem build -Recurse | Select-Object FullName; throw "Expected dist/bin/ytdlp.dll was not produced" }
           if (!(Test-Path "dist/lib/ytdlp.lib")) { Get-ChildItem dist -Recurse | Select-Object FullName; throw "Expected import library dist/lib/ytdlp.lib was not produced" }
-          Get-Item dist/bin/ytdlp.dll, dist/lib/ytdlp.lib | Select-Object Name,Length
+          if (!(Test-Path "dist/bin/ytdlp.exe")) { Get-ChildItem dist -Recurse | Select-Object FullName; throw "Expected dist/bin/ytdlp.exe was not produced" }
+          & "dist/bin/ytdlp.exe" --version
+          if ($LASTEXITCODE -ne 0) { throw "ytdlp.exe --version failed" }
+          Get-Item dist/bin/ytdlp.dll, dist/bin/ytdlp.exe, dist/lib/ytdlp.lib | Select-Object Name,Length
 
       - name: Upload Windows x64 build
         uses: actions/upload-artifact@v4
