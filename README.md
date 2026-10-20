@@ -17,12 +17,14 @@ The source snapshot is imported from https://github.com/yt-dlp/yt-dlp. Its upstr
 - HTTP(S) download layer using libcurl, with TLS verification enabled.
 - Native request/response structures and a host/path/secure-aware in-memory cookie store.
 - Initial native extractor framework: typed media/format results, ordered extractor registry, and direct media-file URL recognition.
+- HTML metadata parser for page titles, descriptions, canonical links, Open Graph/Twitter video URLs, and HTML video/source tags; JavaScript is not executed.
+- Windows x64 build workflow using MSVC and Windows Schannel TLS, producing a DLL, import library, and public headers.
 - Native utility ports: determine_ext, url_basename, int_or_none, str_or_none, urlencode_postdata, parse_duration, url_join, and update_url_query.
 - Unit tests for URL helpers, duration parsing, cookies, and response headers.
 - Host-side unit tests for utility behavior.
 - Android API 19 / armeabi-v7a build workflow.
 
-These are only the first building blocks. The direct-media extractor handles URLs whose paths are media files; it does not parse HLS/DASH manifests or implement site-specific extraction. This project is **not yet a complete yt-dlp replacement** and does not yet include native site extractors, full format selection, or media merging.
+These are only the first building blocks. The direct-media extractor handles URLs whose paths are media files. The HTML metadata parser is only a parsing primitive; it does not execute JavaScript, parse HLS/DASH manifests, or implement site-specific extraction. This project is **not yet a complete yt-dlp replacement** and does not yet include native site extractors, full format selection, or media merging.
 
 ## Build and test
 
