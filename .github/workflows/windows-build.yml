@@ -1,0 +1,64 @@
+name: Windows x64 build
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "src/**"
+      - "include/**"
+      - "CMakeLists.txt"
+      - ".github/workflows/windows-build.yml"
+  pull_request:
+    paths:
+      - "src/**"
+      - "include/**"
+      - "CMakeLists.txt"
+      - ".github/workflows/windows-build.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    name: Windows x64 (MSVC + Schannel)
+    runs-on: windows-2022
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install Visual Studio build tools
+        uses: microsoft/setup-msbuild@v2
+
+      - name: Build static libcurl with native Windows TLS
+        shell: pwsh
+        run: |
+          git clone --depth 1 --branch curl-8_12_1 https://github.com/curl/curl.git deps/curl
+          cmake -S deps/curl -B build-curl -A x64 -DCMAKE_INSTALL_PREFIX="$env:GITHUB_WORKSPACE/deps/install" -DCMAKE_BUILD_TYPE=Release -DBUILD_SHARED_LIBS=OFF -DBUILD_CURL_EXE=OFF -DBUILD_TESTING=OFF -DCURL_USE_SCHANNEL=ON -DCURL_USE_OPENSSL=OFF -DCURL_USE_MBEDTLS=OFF -DCURL_USE_LIBSSH2=OFF -DCURL_USE_LIBPSL=OFF -DCURL_USE_ZLIB=OFF -DCURL_ZLIB=OFF -DCURL_DISABLE_LDAP=ON -DCURL_DISABLE_LDAPS=ON -DCURL_DISABLE_FTP=ON -DCURL_DISABLE_FILE=ON -DCURL_DISABLE_TELNET=ON -DCURL_DISABLE_DICT=ON -DCURL_DISABLE_GOPHER=ON
+          cmake --build build-curl --config Release --parallel 2
+          cmake --install build-curl --config Release
+          if (!(Test-Path "$env:GITHUB_WORKSPACE/deps/install/lib/libcurl.lib")) { Get-ChildItem "$env:GITHUB_WORKSPACE/deps/install" -Recurse | Select-Object FullName; throw "Static libcurl library was not installed at the expected path" }
+
+      - name: Configure ytdlp.cpp
+        shell: pwsh
+        run: |
+          cmake -S . -B build -A x64 -DCMAKE_BUILD_TYPE=Release -DCMAKE_PREFIX_PATH="$env:GITHUB_WORKSPACE/deps/install" -DCURL_INCLUDE_DIR="$env:GITHUB_WORKSPACE/deps/install/include" -DCURL_LIBRARY="$env:GITHUB_WORKSPACE/deps/install/lib/libcurl.lib" -DYTDLP_BUILD_TESTS=OFF -DYTDLP_BUILD_SHARED=ON
+
+      - name: Build native DLL
+        run: cmake --build build --config Release --parallel 2
+
+      - name: Install and inspect Windows outputs
+        shell: pwsh
+        run: |
+          cmake --install build --config Release --prefix dist
+          if (!(Test-Path "dist/bin/ytdlp.dll")) { Get-ChildItem build -Recurse | Select-Object FullName; throw "Expected dist/bin/ytdlp.dll was not produced" }
+          if (!(Test-Path "dist/lib/ytdlp.lib")) { Get-ChildItem dist -Recurse | Select-Object FullName; throw "Expected import library dist/lib/ytdlp.lib was not produced" }
+          Get-Item dist/bin/ytdlp.dll, dist/lib/ytdlp.lib | Select-Object Name,Length
+
+      - name: Upload Windows x64 build
+        uses: actions/upload-artifact@v4
+        with:
+          name: ytdlp-cpp-windows-x64
+          path: dist/
+          if-no-files-found: error
+          retention-days: 14
