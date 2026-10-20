@@ -102,6 +102,7 @@ jobs:
             -DCURL_INCLUDE_DIR="$GITHUB_WORKSPACE/deps/install/include" \
             -DCURL_LIBRARY="$GITHUB_WORKSPACE/deps/install/lib/libcurl.a" \
             -DYTDLP_BUILD_TESTS=OFF \
+            -DYTDLP_BUILD_CLI=OFF \
             -DYTDLP_TLS_LIBRARIES="$GITHUB_WORKSPACE/deps/install/lib/libmbedtls.a;$GITHUB_WORKSPACE/deps/install/lib/libmbedx509.a;$GITHUB_WORKSPACE/deps/install/lib/libmbedcrypto.a" \
             -DCMAKE_BUILD_TYPE=Release
       - name: Build native library
