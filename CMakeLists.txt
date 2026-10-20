@@ -14,6 +14,7 @@ find_package(CURL REQUIRED)
 set(YTDLP_SOURCES
     src/ytdlp.cpp
     src/http.cpp
+    src/downloader.cpp
     src/network.cpp
     src/extractor.cpp
     src/html.cpp
@@ -88,6 +89,15 @@ if(YTDLP_BUILD_TESTS)
         target_compile_options(ytdlp_html_test PRIVATE -Wall -Wextra -Wpedantic)
     endif()
     add_test(NAME native_html_test COMMAND ytdlp_html_test)
+    add_executable(ytdlp_downloader_test tests/downloader_test.cpp)
+    target_include_directories(ytdlp_downloader_test PRIVATE include)
+    target_link_libraries(ytdlp_downloader_test PRIVATE ytdlp_core)
+    if(MSVC)
+        target_compile_options(ytdlp_downloader_test PRIVATE /W4 /permissive-)
+    else()
+        target_compile_options(ytdlp_downloader_test PRIVATE -Wall -Wextra -Wpedantic)
+    endif()
+    add_test(NAME native_downloader_test COMMAND ytdlp_downloader_test)
 endif()
 
 install(TARGETS ytdlp_core
