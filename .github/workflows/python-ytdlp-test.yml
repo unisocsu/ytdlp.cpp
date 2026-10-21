@@ -1,0 +1,89 @@
+name: Original Python yt-dlp Windows test
+
+on:
+  workflow_dispatch:
+    inputs:
+      video_url:
+        description: "Optional extra URL to test (the two known URLs are tested too)"
+        required: false
+        type: string
+        default: ""
+  push:
+    paths:
+      - ".github/workflows/python-ytdlp-test.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  build-and-test:
+    runs-on: windows-2022
+    steps:
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install original yt-dlp and PyInstaller
+        shell: pwsh
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install --upgrade yt-dlp pyinstaller
+          yt-dlp --version
+          python -c "import yt_dlp; print('yt-dlp module:', yt_dlp.__file__)"
+
+      - name: Build standalone Windows EXE
+        shell: pwsh
+        run: |
+          $entry = python -c "import pathlib, yt_dlp; print(pathlib.Path(yt_dlp.__file__).parent / '__main__.py')"
+          python -m PyInstaller --noconfirm --clean --onefile --name yt-dlp --collect-all yt_dlp --hidden-import yt_dlp.__main__ $entry
+          if (!(Test-Path "dist/yt-dlp.exe")) { throw "PyInstaller did not create dist/yt-dlp.exe" }
+          & "dist/yt-dlp.exe" --version
+          if ($LASTEXITCODE -ne 0) { throw "Standalone yt-dlp.exe failed its version check" }
+
+      - name: Test extraction against the two reported videos
+        shell: pwsh
+        continue-on-error: true
+        env:
+          VIDEO_URL: ${{ inputs.video_url }}
+        run: |
+          New-Item -ItemType Directory -Force test-results | Out-Null
+          $urls = @(
+            "https://www.youtube.com/watch?v=O1uCELkY7i8",
+            "https://www.youtube.com/watch?v=wOfrF-l5Ozk"
+          )
+          if ($env:VIDEO_URL -ne "") { $urls += $env:VIDEO_URL }
+          $i = 0
+          foreach ($url in $urls) {
+            $i++
+            "URL: $url" | Set-Content "test-results/test-$i.txt"
+            "=== yt-dlp installed command ===" | Add-Content "test-results/test-$i.txt"
+            yt-dlp --simulate --no-warnings --verbose --no-playlist $url 2>&1 | Add-Content "test-results/test-$i.txt"
+            "Installed command exit code: $LASTEXITCODE" | Add-Content "test-results/test-$i.txt"
+            "=== standalone EXE ===" | Add-Content "test-results/test-$i.txt"
+            & "dist/yt-dlp.exe" --simulate --no-warnings --verbose --no-playlist $url 2>&1 | Add-Content "test-results/test-$i.txt"
+            "Standalone EXE exit code: $LASTEXITCODE" | Add-Content "test-results/test-$i.txt"
+            Get-Content "test-results/test-$i.txt"
+          }
+
+      - name: Include version and test summary
+        if: always()
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force test-results | Out-Null
+          "yt-dlp version:" | Set-Content test-results/summary.txt
+          yt-dlp --version | Add-Content test-results/summary.txt
+          "Python:" | Add-Content test-results/summary.txt
+          python --version 2>&1 | Add-Content test-results/summary.txt
+          Get-ChildItem test-results | Select-Object Name,Length | Format-Table | Out-String | Add-Content test-results/summary.txt
+
+      - name: Upload standalone EXE and test logs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: original-python-ytdlp-windows
+          path: |
+            dist/yt-dlp.exe
+            test-results/
+          if-no-files-found: warn
+          retention-days: 14
