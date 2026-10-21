@@ -230,29 +230,55 @@ ExtractResult YouTubeExtractor::extract(const std::string& url) const {
     if (api_key.empty())
         return {std::nullopt, "YouTube did not expose an Innertube API key; page layout or access restrictions may have changed"};
 
-    ytdlp::network::HttpRequest player_request;
-    player_request.url = "https://www.youtube.com/youtubei/v1/player?key=" + api_key;
-    player_request.method = "POST";
-    player_request.timeout_seconds = 30;
-    player_request.headers.emplace_back("Content-Type", "application/json");
-    player_request.headers.emplace_back("Origin", "https://www.youtube.com");
-    player_request.headers.emplace_back("User-Agent", "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 Chrome/131.0 Safari/537.36");
-    player_request.body = "{\"videoId\":\"" + video_id +
-        "\",\"context\":{\"client\":{\"clientName\":\"WEB\",\"clientVersion\":\"2.20250101.00.00\",\"hl\":\"en\",\"gl\":\"US\"}}}";
-    const auto player = ytdlp::network::perform(player_request);
-    if (!player.ok())
-        return {std::nullopt, "YouTube player API request failed: " +
-            (player.error.empty() ? "HTTP " + std::to_string(player.status) : player.error)};
-
-    const std::string title = json_string_field(player.body, "title");
-    auto formats = youtube_direct_formats(player.body);
+    // YouTube's player API can expose different format sets for different clients.
+    // Try the ordinary web client first, then Android's public player client as a
+    // fallback. This is not signature deciphering; encrypted/ciphered URLs are still
+    // rejected explicitly below.
+    std::string player_body;
+    std::string player_error;
+    std::vector<Format> formats;
+    const struct PlayerClient {
+        const char* name;
+        const char* version;
+        const char* user_agent;
+    } clients[] = {
+        {"WEB", "2.20250101.00.00",
+         "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 Chrome/131.0 Safari/537.36"},
+        {"ANDROID", "19.09.37",
+         "com.google.android.youtube/19.09.37 (Linux; U; Android 11) gzip"}
+    };
+    for (const auto& client : clients) {
+        ytdlp::network::HttpRequest player_request;
+        player_request.url = "https://www.youtube.com/youtubei/v1/player?key=" + api_key;
+        player_request.method = "POST";
+        player_request.timeout_seconds = 30;
+        player_request.headers.emplace_back("Content-Type", "application/json");
+        player_request.headers.emplace_back("Origin", "https://www.youtube.com");
+        player_request.headers.emplace_back("User-Agent", client.user_agent);
+        player_request.body = "{\"videoId\":\"" + video_id +
+            "\",\"context\":{\"client\":{\"clientName\":\"" + client.name +
+            "\",\"clientVersion\":\"" + client.version +
+            "\",\"hl\":\"en\",\"gl\":\"US\"}}}";
+        const auto player = ytdlp::network::perform(player_request);
+        if (!player.ok()) {
+            player_error = player.error.empty()
+                ? "HTTP " + std::to_string(player.status) : player.error;
+            continue;
+        }
+        player_body = player.body;
+        formats = youtube_direct_formats(player_body);
+        if (!formats.empty()) break;
+    }
     if (formats.empty()) {
-        if (player.body.find("signatureCipher") != std::string::npos ||
-            player.body.find("cipher") != std::string::npos) {
+        if (player_body.find("signatureCipher") != std::string::npos ||
+            player_body.find("\"cipher\"") != std::string::npos) {
             return {std::nullopt, "YouTube returned ciphered media URLs. Signature deciphering and JavaScript challenge support are not implemented yet."};
         }
-        return {std::nullopt, "YouTube returned no direct media URLs. This video may require signature deciphering, a different client, or may be unavailable."};
+        if (player_body.empty() && !player_error.empty())
+            return {std::nullopt, "YouTube player API request failed: " + player_error};
+        return {std::nullopt, "YouTube returned no direct media URLs for the WEB or ANDROID player clients. This video may require signature deciphering, JavaScript challenge support, separate DASH tracks, or may be unavailable."};
     }
+    const std::string title = json_string_field(player_body, "title");
     // Prefer a combined audio/video format where available; otherwise use the
     // highest-resolution direct format. Separate DASH tracks are not merged yet.
     std::stable_sort(formats.begin(), formats.end(), [](const Format& a, const Format& b) {
