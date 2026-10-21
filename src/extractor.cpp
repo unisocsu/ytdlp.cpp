@@ -139,7 +139,14 @@ std::string query_value(const std::string& q,const std::string& key) {
 }
 std::size_t matching_brace(const std::string& s,std::size_t p) {
     int d=0; char q=0; bool esc=false;
-    for(std::size_t i=p;i<s.size();++i) { char c=s[i]; if(q) { if(esc) esc=false; else if(c=='\\') esc=true; else if(c==q) q=0; continue; } if(c=='"'||c=='\\'') q=c; else if(c=='{') ++d; else if(c=='}'&&--d==0) return i; } return std::string::npos;
+    for(std::size_t i=p;i<s.size();++i) {
+        char c=s[i];
+        if(q) { if(esc) esc=false; else if(c=='\\') esc=true; else if(c==q) q=0; continue; }
+        if(c=='"') q=c;
+        else if(c=='{') ++d;
+        else if(c=='}'&&--d==0) return i;
+    }
+    return std::string::npos;
 }
 std::string youtube_player_js_url(const std::string& html) {
     std::smatch m; const std::regex ps[]={std::regex(R"("jsUrl"\s*:\s*"([^"]+)")"),std::regex(R"("PLAYER_JS_URL"\s*:\s*"([^"]+)")"),std::regex(R"("js"\s*:\s*"([^"]*base\.js[^"]*)")")};
