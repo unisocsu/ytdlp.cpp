@@ -25,7 +25,7 @@ The source snapshot is imported from https://github.com/yt-dlp/yt-dlp. Its upstr
 - Host-side unit tests for utility behavior.
 - Android API 19 / armeabi-v7a build workflow.
 
-YouTube support is an initial native implementation: it fetches the watch page, reads the Innertube API key, tries the WEB player client and then the ANDROID player client, and accepts direct media URLs when either returns them. It does **not** yet decipher `signatureCipher`/JavaScript challenges or merge separate DASH audio and video tracks, so many YouTube videos will still fail. The generic HTML extractor also does not execute JavaScript or parse HLS/DASH manifests. This project is **not yet a complete yt-dlp replacement**.
+YouTube support is an initial native implementation: it fetches the watch page, reads the Innertube API key, tries the WEB, ANDROID, and TV embedded player clients, and accepts direct media URLs when one returns them. When no direct URL is available, the error includes the player status/reason when provided. It does **not** yet decipher `signatureCipher`/JavaScript challenges or merge separate DASH audio and video tracks, so many YouTube videos will still fail. The generic HTML extractor also does not execute JavaScript or parse HLS/DASH manifests. This project is **not yet a complete yt-dlp replacement**.
 
 ## Windows command-line usage
 
