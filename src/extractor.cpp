@@ -241,11 +241,15 @@ ExtractResult YouTubeExtractor::extract(const std::string& url) const {
         const char* name;
         const char* version;
         const char* user_agent;
+        const char* context_extra;
     } clients[] = {
         {"WEB", "2.20250101.00.00",
-         "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 Chrome/131.0 Safari/537.36"},
+         "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 Chrome/131.0 Safari/537.36", ""},
         {"ANDROID", "19.09.37",
-         "com.google.android.youtube/19.09.37 (Linux; U; Android 11) gzip"}
+         "com.google.android.youtube/19.09.37 (Linux; U; Android 11) gzip", ""},
+        {"TVHTML5_SIMPLY_EMBEDDED_PLAYER", "2.0",
+         "Mozilla/5.0 (SMART-TV; Linux; Tizen 6.0) AppleWebKit/537.36 (KHTML, like Gecko) 85.0.4183.93/6.0 TV Safari/537.36",
+         ",\"thirdParty\":{\"embedUrl\":\"https://www.youtube.com/\"}"}
     };
     for (const auto& client : clients) {
         ytdlp::network::HttpRequest player_request;
@@ -258,7 +262,7 @@ ExtractResult YouTubeExtractor::extract(const std::string& url) const {
         player_request.body = "{\"videoId\":\"" + video_id +
             "\",\"context\":{\"client\":{\"clientName\":\"" + client.name +
             "\",\"clientVersion\":\"" + client.version +
-            "\",\"hl\":\"en\",\"gl\":\"US\"}}}";
+            "\",\"hl\":\"en\",\"gl\":\"US\"}" + client.context_extra + "}}";
         const auto player = ytdlp::network::perform(player_request);
         if (!player.ok()) {
             player_error = player.error.empty()
@@ -276,7 +280,12 @@ ExtractResult YouTubeExtractor::extract(const std::string& url) const {
         }
         if (player_body.empty() && !player_error.empty())
             return {std::nullopt, "YouTube player API request failed: " + player_error};
-        return {std::nullopt, "YouTube returned no direct media URLs for the WEB or ANDROID player clients. This video may require signature deciphering, JavaScript challenge support, separate DASH tracks, or may be unavailable."};
+        const std::string playability = json_string_field(player_body, "status");
+        const std::string reason = json_string_field(player_body, "reason");
+        std::string detail = "YouTube returned no direct media URLs after trying WEB, ANDROID, and TV embedded player clients. Signature deciphering, JavaScript challenge support, and separate DASH track merging are not implemented yet.";
+        if (!playability.empty()) detail += " Player status: " + playability + ".";
+        if (!reason.empty()) detail += " Reason: " + reason + ".";
+        return {std::nullopt, detail};
     }
     const std::string title = json_string_field(player_body, "title");
     // Prefer a combined audio/video format where available; otherwise use the
