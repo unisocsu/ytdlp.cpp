@@ -241,15 +241,21 @@ ExtractResult YouTubeExtractor::extract(const std::string& url) const {
         const char* name;
         const char* version;
         const char* user_agent;
+        const char* context_client_extra;
         const char* context_extra;
     } clients[] = {
         {"WEB", "2.20250101.00.00",
-         "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 Chrome/131.0 Safari/537.36", ""},
+         "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 Chrome/131.0 Safari/537.36", "", ""},
         {"ANDROID", "19.09.37",
-         "com.google.android.youtube/19.09.37 (Linux; U; Android 11) gzip", ""},
+         "com.google.android.youtube/19.09.37 (Linux; U; Android 11) gzip", "", ""},
+        // yt-dlp's current extractor uses VISIONOS for some videos that do not
+        // expose usable formats to the usual WEB/ANDROID clients.
+        {"VISIONOS", "1.02",
+         "Mozilla/5.0 (Macintosh; Intel Mac OS X 15_7_3) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/26.0 Safari/605.1.15",
+         ",\"deviceMake\":\"Apple\",\"deviceModel\":\"RealityDevice17,1\",\"osName\":\"visionOS\",\"osVersion\":\"26.5.23O471\"", ""},
         {"TVHTML5_SIMPLY_EMBEDDED_PLAYER", "2.0",
          "Mozilla/5.0 (SMART-TV; Linux; Tizen 6.0) AppleWebKit/537.36 (KHTML, like Gecko) 85.0.4183.93/6.0 TV Safari/537.36",
-         ",\"thirdParty\":{\"embedUrl\":\"https://www.youtube.com/\"}"}
+         "", ",\"thirdParty\":{\"embedUrl\":\"https://www.youtube.com/\"}"}
     };
     for (const auto& client : clients) {
         ytdlp::network::HttpRequest player_request;
@@ -262,7 +268,8 @@ ExtractResult YouTubeExtractor::extract(const std::string& url) const {
         player_request.body = "{\"videoId\":\"" + video_id +
             "\",\"context\":{\"client\":{\"clientName\":\"" + client.name +
             "\",\"clientVersion\":\"" + client.version +
-            "\",\"hl\":\"en\",\"gl\":\"US\"}" + client.context_extra + "}}";
+            "\",\"hl\":\"en\",\"gl\":\"US\"" + client.context_client_extra +
+            "}" + client.context_extra + "}}";
         const auto player = ytdlp::network::perform(player_request);
         if (!player.ok()) {
             player_error = player.error.empty()
