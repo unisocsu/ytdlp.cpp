@@ -289,7 +289,14 @@ ExtractResult YouTubeExtractor::extract(const std::string& url) const {
             return {std::nullopt, "YouTube player API request failed: " + player_error};
         const std::string playability = json_string_field(player_body, "status");
         const std::string reason = json_string_field(player_body, "reason");
-        std::string detail = "YouTube returned no direct media URLs after trying WEB, ANDROID, and TV embedded player clients. Signature deciphering, JavaScript challenge support, and separate DASH track merging are not implemented yet.";
+        if (player_body.find("hlsManifestUrl") != std::string::npos) {
+            return {std::nullopt, "YouTube returned an HLS manifest for the available player client. HLS playlist parsing and segmented downloading are not implemented yet."};
+        }
+        if (player_body.find("adaptiveFormats") != std::string::npos ||
+            player_body.find("formats") != std::string::npos) {
+            return {std::nullopt, "YouTube returned format metadata, but no directly usable media URLs. Signature deciphering, JavaScript challenge support, and separate DASH track merging are not implemented yet."};
+        }
+        std::string detail = "YouTube returned no direct media URLs after trying WEB, ANDROID, VISIONOS, and TV embedded player clients. Signature deciphering, JavaScript challenge support, and separate DASH track merging are not implemented yet.";
         if (!playability.empty()) detail += " Player status: " + playability + ".";
         if (!reason.empty()) detail += " Reason: " + reason + ".";
         return {std::nullopt, detail};
